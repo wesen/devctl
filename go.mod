@@ -4,6 +4,7 @@ go 1.25.5
 
 require (
 	github.com/go-go-golems/glazed v0.0.0
+	github.com/dop251/goja v0.0.0-20250309171923-bcd7cc6bf64c
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.10.1
