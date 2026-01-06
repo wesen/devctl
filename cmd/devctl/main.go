@@ -19,6 +19,7 @@ var rootCmd = &cobra.Command{
 
 func main() {
 	cobra.CheckErr(logging.AddLoggingLayerToRootCommand(rootCmd, "devctl"))
+	cmds.AddRootFlags(rootCmd)
 	cobra.CheckErr(cmds.AddCommands(rootCmd))
 	cobra.CheckErr(rootCmd.Execute())
 }

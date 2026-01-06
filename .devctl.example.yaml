@@ -1,0 +1,8 @@
+# Example devctl configuration
+plugins:
+  - id: ok
+    path: python3
+    args:
+      - ./testdata/plugins/ok-python/plugin.py
+    priority: 10
+# strictness: warn   # or "error" (or use --strict)
