@@ -28,6 +28,7 @@ func newSmokeTestCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			ctx = runtime.WithRepoRoot(ctx, repoRoot)
 
 			if pluginPath == "" {
 				pluginPath = filepath.Join(repoRoot, "testdata", "plugins", "ok-python", "plugin.py")

@@ -55,6 +55,8 @@ func newSmokeTestSuperviseCmd() *cobra.Command {
 				return err
 			}
 
+			ctx = plugruntime.WithRepoRoot(ctx, repoRoot)
+
 			factory := plugruntime.NewFactory(plugruntime.FactoryOptions{HandshakeTimeout: 2 * time.Second, ShutdownTimeout: 2 * time.Second})
 			var clients []plugruntime.Client
 			for _, spec := range specs {

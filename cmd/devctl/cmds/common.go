@@ -1,11 +1,13 @@
 package cmds
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/go-go-golems/devctl/pkg/config"
+	"github.com/go-go-golems/devctl/pkg/runtime"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -79,4 +81,10 @@ func getRootOptions(cmd *cobra.Command) (rootOptions, error) {
 		DryRun:   dryRun,
 		Timeout:  timeout,
 	}, nil
+}
+
+func withPluginRequestContext(ctx context.Context, opts rootOptions) context.Context {
+	ctx = runtime.WithRepoRoot(ctx, opts.RepoRoot)
+	ctx = runtime.WithDryRun(ctx, opts.DryRun)
+	return ctx
 }

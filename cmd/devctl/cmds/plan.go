@@ -42,7 +42,7 @@ func newPlanCmd() *cobra.Command {
 				return nil
 			}
 
-			ctx := cmd.Context()
+			ctx := withPluginRequestContext(cmd.Context(), opts)
 			factory := runtime.NewFactory(runtime.FactoryOptions{
 				HandshakeTimeout: 2 * time.Second,
 				ShutdownTimeout:  2 * time.Second,

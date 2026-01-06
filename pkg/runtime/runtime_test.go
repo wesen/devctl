@@ -109,3 +109,72 @@ func TestRuntime_Stream(t *testing.T) {
 	}
 	require.Equal(t, []string{"hello", "world"}, messages)
 }
+
+func TestRuntime_CallTimeout(t *testing.T) {
+	repoRoot, err := os.Getwd()
+	require.NoError(t, err)
+	plugin := filepath.Join(repoRoot, "..", "..", "testdata", "plugins", "timeout", "plugin.py")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	f := NewFactory(FactoryOptions{HandshakeTimeout: 2 * time.Second, ShutdownTimeout: 2 * time.Second})
+	c, err := f.Start(ctx, PluginSpec{
+		ID:      "t",
+		Path:    "python3",
+		Args:    []string{plugin},
+		WorkDir: repoRoot,
+	})
+	require.NoError(t, err)
+	defer func() { _ = c.Close(context.Background()) }()
+
+	var out struct {
+		Pong bool `json:"pong"`
+	}
+	err = c.Call(ctx, "ping", map[string]any{"message": "hi"}, &out)
+	require.Error(t, err)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+}
+
+func TestRuntime_StreamClosesOnClientClose(t *testing.T) {
+	repoRoot, err := os.Getwd()
+	require.NoError(t, err)
+	plugin := filepath.Join(repoRoot, "..", "..", "testdata", "plugins", "long-running-plugin", "plugin.py")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	f := NewFactory(FactoryOptions{HandshakeTimeout: 2 * time.Second, ShutdownTimeout: 2 * time.Second})
+	c, err := f.Start(ctx, PluginSpec{
+		ID:      "t",
+		Path:    "python3",
+		Args:    []string{plugin},
+		WorkDir: repoRoot,
+	})
+	require.NoError(t, err)
+
+	_, events, err := c.StartStream(ctx, "logs.follow", map[string]any{})
+	require.NoError(t, err)
+
+	select {
+	case <-events:
+	case <-time.After(1 * time.Second):
+		require.FailNow(t, "expected at least one event before close")
+	}
+
+	require.NoError(t, c.Close(context.Background()))
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		select {
+		case _, ok := <-events:
+			if !ok {
+				return
+			}
+		case <-time.After(50 * time.Millisecond):
+			if time.Now().After(deadline) {
+				require.FailNow(t, "expected events channel to close after client close")
+			}
+		}
+	}
+}

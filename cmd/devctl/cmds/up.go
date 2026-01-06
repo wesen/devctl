@@ -36,13 +36,15 @@ func newUpCmd() *cobra.Command {
 				return err
 			}
 
-			if _, err := os.Stat(state.StatePath(opts.RepoRoot)); err == nil {
-				if !force {
-					return errors.New("state exists; run devctl down first or use --force")
-				}
-				log.Info().Msg("existing state found; stopping first (--force)")
-				if err := stopFromState(cmd.Context(), opts); err != nil {
-					return err
+			if !opts.DryRun {
+				if _, err := os.Stat(state.StatePath(opts.RepoRoot)); err == nil {
+					if !force {
+						return errors.New("state exists; run devctl down first or use --force")
+					}
+					log.Info().Msg("existing state found; stopping first (--force)")
+					if err := stopFromState(cmd.Context(), opts); err != nil {
+						return err
+					}
 				}
 			}
 
@@ -62,7 +64,7 @@ func newUpCmd() *cobra.Command {
 				return errors.New("no plugins configured (add .devctl.yaml)")
 			}
 
-			ctx := cmd.Context()
+			ctx := withPluginRequestContext(cmd.Context(), opts)
 			factory := runtime.NewFactory(runtime.FactoryOptions{
 				HandshakeTimeout: 2 * time.Second,
 				ShutdownTimeout:  3 * time.Second,
@@ -102,22 +104,28 @@ func newUpCmd() *cobra.Command {
 				return err
 			}
 
+			out := map[string]any{
+				"config": conf,
+			}
+
 			if !skipBuild {
 				opCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
-				_, err := p.Build(opCtx, conf, buildSteps)
+				br, err := p.Build(opCtx, conf, buildSteps)
 				cancel()
 				if err != nil {
 					return err
 				}
+				out["build"] = br
 			}
 
 			if !skipPrepare {
 				opCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
-				_, err := p.Prepare(opCtx, conf, prepareSteps)
+				pr, err := p.Prepare(opCtx, conf, prepareSteps)
 				cancel()
 				if err != nil {
 					return err
 				}
+				out["prepare"] = pr
 			}
 
 			if !skipValidate {
@@ -127,6 +135,7 @@ func newUpCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
+				out["validate"] = vr
 				if !vr.Valid {
 					b, _ := json.MarshalIndent(vr, "", "  ")
 					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), string(b))
@@ -139,6 +148,17 @@ func newUpCmd() *cobra.Command {
 			cancel()
 			if err != nil {
 				return err
+			}
+			out["plan"] = plan
+
+			if opts.DryRun {
+				b, err := json.MarshalIndent(out, "", "  ")
+				if err != nil {
+					return err
+				}
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), string(b))
+				log.Info().Int("services", len(plan.Services)).Msg("dry-run complete")
+				return nil
 			}
 
 			sup := supervise.New(supervise.Options{RepoRoot: opts.RepoRoot, ReadyTimeout: opts.Timeout})

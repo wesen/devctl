@@ -161,15 +161,19 @@ func AddDynamicPluginCommands(root *cobra.Command, args []string) error {
 	return nil
 }
 
-func parseRepoArgs(args []string) (repoRoot string, cfgPath string, err error) {
+func parseRepoArgs(args []string) (string, string, error) {
 	fs := pflag.NewFlagSet("devctl-bootstrap", pflag.ContinueOnError)
-	fs.ParseErrorsWhitelist.UnknownFlags = true
+	fs.ParseErrorsAllowlist.UnknownFlags = true
 	fs.SetInterspersed(true)
 	fs.SetOutput(io.Discard)
 	fs.String("repo-root", "", "")
 	fs.String("config", "", "")
 	_ = fs.Parse(args[1:])
 
+	repoRoot := ""
+	cfgPath := ""
+
+	var err error
 	repoRoot, _ = fs.GetString("repo-root")
 	if repoRoot == "" {
 		repoRoot, err = os.Getwd()

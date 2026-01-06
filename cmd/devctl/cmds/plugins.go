@@ -30,6 +30,7 @@ func newPluginsListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			ctx := withPluginRequestContext(cmd.Context(), opts)
 
 			cfg, err := config.LoadOptional(opts.Config)
 			if err != nil {
@@ -64,12 +65,12 @@ func newPluginsListCmd() *cobra.Command {
 
 			infos := make([]pluginInfo, 0, len(specs))
 			for _, spec := range specs {
-				c, err := factory.Start(cmd.Context(), spec)
+				c, err := factory.Start(ctx, spec)
 				if err != nil {
 					return err
 				}
 				hs := c.Handshake()
-				_ = c.Close(cmd.Context())
+				_ = c.Close(ctx)
 
 				infos = append(infos, pluginInfo{
 					ID:         spec.ID,

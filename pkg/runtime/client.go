@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"os"
 	"os/exec"
 	"sync"
 	"sync/atomic"
@@ -39,6 +40,7 @@ type client struct {
 	nextID   uint64
 
 	startOnce sync.Once
+	closing   atomic.Bool
 }
 
 func newClient(spec PluginSpec, hs protocol.Handshake, cmd *exec.Cmd, stdin io.WriteCloser, stdout *bufio.Reader, stderr io.ReadCloser, shutdownTimeout time.Duration) *client {
@@ -181,10 +183,10 @@ func (c *client) readStdoutLoop() {
 	for {
 		line, err := c.stdout.ReadBytes('\n')
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return
+			c.router.failAll(err)
+			if !c.closing.Load() && !errors.Is(err, io.EOF) && !errors.Is(err, os.ErrClosed) {
+				log.Error().Err(err).Str("plugin", c.spec.ID).Msg("stdout read error")
 			}
-			log.Error().Err(err).Str("plugin", c.spec.ID).Msg("stdout read error")
 			return
 		}
 		if len(line) > 0 && line[len(line)-1] == '\n' {
@@ -232,7 +234,7 @@ func (c *client) readStderrLoop() {
 	for {
 		line, err := r.ReadBytes('\n')
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if c.closing.Load() || errors.Is(err, io.EOF) || errors.Is(err, os.ErrClosed) {
 				return
 			}
 			log.Error().Err(err).Str("plugin", c.spec.ID).Msg("stderr read error")
@@ -252,6 +254,8 @@ func (c *client) close(ctx context.Context) error {
 	if c.cmd == nil {
 		return nil
 	}
+	c.closing.Store(true)
+	_ = c.stdin.Close()
 	_ = terminateProcessGroup(c.cmd, c.shutdownTimeout)
 	return nil
 }
@@ -273,5 +277,8 @@ func requestContextFrom(ctx context.Context) protocol.RequestContext {
 			rc.DeadlineMs = 0
 		}
 	}
+	rc.RepoRoot = repoRootFromContext(ctx)
+	rc.Cwd = cwdFromContext(ctx)
+	rc.DryRun = dryRunFromContext(ctx)
 	return rc
 }
