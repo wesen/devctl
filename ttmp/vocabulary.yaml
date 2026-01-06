@@ -1,0 +1,92 @@
+topics:
+    - slug: frontend
+      description: Frontend app
+    - slug: backend
+      description: Backend services and Go server
+    - slug: identity
+      description: Identity domain, auth, and user models
+    - slug: api
+      description: Backend API and HTTP endpoints
+    - slug: relationships
+      description: People relationships feature and services
+    - slug: drive
+      description: Google Drive integrations
+    - slug: team
+      description: Team scoring and relationships
+    - slug: doclens
+      description: DocLens tools and engines
+    - slug: infrastructure
+      description: Infrastructure, networking, cloud resources
+    - slug: terraform
+      description: Terraform modules and stacks
+    - slug: aws
+      description: Amazon Web Services
+    - slug: deployment
+      description: Deployment processes and operations
+    - slug: ui-components
+      description: UI component development and design
+    - slug: refactor
+      description: Refactoring and consolidation work
+    - slug: prompts
+      description: Prompt resolution, prompt packs/manifests, and prompt-related refactors
+    - slug: chat
+      description: Chat backend and frontend surfaces
+    - slug: websocket
+      description: WebSocket lifecycle & events
+docTypes:
+    - slug: index
+      description: Ticket index document
+    - slug: design-doc
+      description: Design document
+    - slug: reference
+      description: Reference document
+    - slug: playbook
+      description: Operational guide
+    - slug: tutorial
+      description: Step-by-step tutorial
+    - slug: task-list
+      description: Task tracking
+    - slug: working-note
+      description: Ongoing notes
+    - slug: log
+      description: Daily/session logs
+    - slug: script
+      description: Operational script
+    - slug: plan
+      description: Implementation/refactor plan
+    - slug: diary
+      description: Diary / work log
+    - slug: brainstorm
+      description: Brainstorming / idea capture
+    - slug: skill
+      description: Skill documentation (what it's for and when to use it)
+intent:
+    - slug: long-term
+      description: Long-term documentation
+    - slug: short-term
+      description: Short-term documentation
+    - slug: working-document
+      description: Working document (in progress)
+    - slug: reviewed
+      description: Reviewed document (accepted)
+    - slug: deprecated
+      description: Deprecated document (kept for historical reference)
+    - slug: throwaway
+      description: Temporary/experimental documentation
+status:
+    - slug: active
+      description: Active work in progress
+    - slug: deprecated
+      description: Deprecated document (kept for historical reference)
+    - slug: archived
+      description: Archived document (no longer in use)
+    - slug: completed
+      description: Completed document (fully implemented)
+    - slug: in-progress
+      description: In progress document (work in progress)
+    - slug: draft
+      description: Initial draft state
+    - slug: review
+      description: Ready for review
+    - slug: complete
+      description: Work completed
