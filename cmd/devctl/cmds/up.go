@@ -22,6 +22,10 @@ import (
 func newUpCmd() *cobra.Command {
 	var force bool
 	var skipValidate bool
+	var skipBuild bool
+	var skipPrepare bool
+	var buildSteps []string
+	var prepareSteps []string
 
 	cmd := &cobra.Command{
 		Use:   "up",
@@ -98,6 +102,24 @@ func newUpCmd() *cobra.Command {
 				return err
 			}
 
+			if !skipBuild {
+				opCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
+				_, err := p.Build(opCtx, conf, buildSteps)
+				cancel()
+				if err != nil {
+					return err
+				}
+			}
+
+			if !skipPrepare {
+				opCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
+				_, err := p.Prepare(opCtx, conf, prepareSteps)
+				cancel()
+				if err != nil {
+					return err
+				}
+			}
+
 			if !skipValidate {
 				opCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
 				vr, err := p.Validate(opCtx, conf)
@@ -137,6 +159,10 @@ func newUpCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&force, "force", false, "Stop existing state before starting")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "Skip validate.run")
+	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "Skip build.run")
+	cmd.Flags().BoolVar(&skipPrepare, "skip-prepare", false, "Skip prepare.run")
+	cmd.Flags().StringSliceVar(&buildSteps, "build-step", nil, "Build step name (repeatable)")
+	cmd.Flags().StringSliceVar(&prepareSteps, "prepare-step", nil, "Prepare step name (repeatable)")
 	return cmd
 }
 
