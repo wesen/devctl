@@ -533,3 +533,50 @@ Note: alternate screen is not a substitute for silencing background logs; anythi
 ### Code review instructions
 - Run `cd devctl && go run ./cmd/devctl tui --repo-root /path/to/repo` and confirm quitting restores the original terminal screen.
 - Run with `--alt-screen=false` and confirm it behaves as before (no alternate screen).
+
+## Step 14: Final doc hygiene + commit the initial TUI skeleton
+
+With the core docs and the Milestone 0 “event spine” in place, I did a quick pass of doc hygiene and then committed the whole slice (code + ticket docs). The main goal here was to get to a clean, shareable baseline where `docmgr doctor` passes and `go test ./...` is green, so we can build the richer UI milestones on top without worrying about missing references or half-staged changes.
+
+This step also resolves the lingering docmgr warning about the imported layout source by renaming it to include a numeric prefix and updating the links/frontmatter that reference it.
+
+**Commit (code):** 2e22243 — "devctl: add tui skeleton + MO-006 ticket docs"
+
+### What I did
+- Renamed the imported source to satisfy numeric-prefix policy: `sources/local/devctl-tui-layout.md` → `sources/local/01-devctl-tui-layout.md`
+- Updated ticket docs (index/design-doc/diary/changelog) to reference the renamed file
+- Verified hygiene and tests:
+  - `docmgr doctor --ticket MO-006-DEVCTL-TUI`
+  - `cd devctl && go test ./...`
+- Committed everything (code + docs) in the `devctl/` git repo
+
+### Why
+- Keep the ticket workspace warning-free so it stays easy to search and maintain.
+- Land a stable “M0 baseline” commit that others can review and iterate on.
+
+### What worked
+- `docmgr doctor` now passes with no findings after the rename + reference updates.
+- The TUI skeleton + docs are now in a single commit, making review and rollback straightforward.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- It’s worth enforcing doc hygiene early; otherwise small warnings accumulate and make doc-centric workflows feel unreliable.
+
+### What was tricky to build
+- Avoiding “historical drift” in the diary: the source really was imported under the old name, but we also want all clickable paths to match the current filesystem.
+
+### What warrants a second pair of eyes
+- Whether we want a stronger convention for `sources/` naming (e.g., always `01-...` for the primary imported artifact) so imported docs don’t need a follow-up rename.
+
+### What should be done in the future
+- If we import additional mockups or artifacts, decide up front whether they should live under `sources/local/NN-*` to avoid docmgr warnings.
+
+### Code review instructions
+- Start with `devctl/cmd/devctl/cmds/tui.go` and then the event spine in `devctl/pkg/tui/*`.
+- Confirm doc hygiene with `docmgr doctor --ticket MO-006-DEVCTL-TUI`.
+- Validate behavior with the playbook in `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/playbook/01-playbook-testing-devctl-tui-in-tmux.md`.
+
+### Technical details
+- Imported baseline (renamed): `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md`

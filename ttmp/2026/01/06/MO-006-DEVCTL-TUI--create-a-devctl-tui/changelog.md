@@ -149,3 +149,14 @@ Diary: annotate work session id 019b94f6-bdd4-7c12-8ac3-d6554e018c62.
 ### Related Files
 
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/diary/01-diary.md — Record session id for all work so far
+
+## 2026-01-06
+
+Finalize M0 baseline: fix doc hygiene (numeric prefix) and land initial TUI skeleton (commit 2e22243).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/tui.go — devctl tui wiring + alternate screen option
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/bus.go — M0 Watermill bus + NopLogger to keep UI clean
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md — Renamed imported baseline to satisfy numeric-prefix policy
+
