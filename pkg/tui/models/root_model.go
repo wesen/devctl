@@ -29,6 +29,8 @@ type RootModel struct {
 	events    EventLogModel
 
 	publishAction func(tui.ActionRequest) error
+
+	statusLine string
 }
 
 type RootModelOptions struct {
@@ -117,6 +119,16 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tui.EventLogAppendMsg:
 		m.events = m.events.Append(v.Entry)
+		if s := strings.TrimSpace(v.Entry.Text); s != "" {
+			if strings.HasPrefix(s, "action failed:") ||
+				strings.HasPrefix(s, "action publish failed:") ||
+				strings.HasPrefix(s, "failed SIGTERM") {
+				m.statusLine = s
+			} else if strings.HasPrefix(s, "action ok:") ||
+				strings.HasPrefix(s, "sent SIGTERM") {
+				m.statusLine = s
+			}
+		}
 		return m, nil
 	case tui.NavigateToServiceMsg:
 		m.service = m.service.WithService(v.Name)
@@ -161,6 +173,9 @@ func (m RootModel) View() string {
 	var b strings.Builder
 
 	b.WriteString(fmt.Sprintf("devctl tui — %s  (tab switch, ? help, q quit)\n\n", m.active))
+	if m.statusLine != "" {
+		b.WriteString(fmt.Sprintf("Status: %s\n\n", m.statusLine))
+	}
 	switch m.active {
 	case ViewService:
 		b.WriteString(m.service.View())

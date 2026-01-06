@@ -122,6 +122,12 @@ func (m DashboardModel) Update(msg tea.Msg) (DashboardModel, tea.Cmd) {
 			m.confirmText = "Restart environment (down then up)"
 			return m, nil
 		case "u":
+			if m.last != nil && m.last.Exists && m.last.State != nil {
+				m.confirmAction = true
+				m.confirmReq = tui.ActionRequest{Kind: tui.ActionRestart}
+				m.confirmText = "State exists; run restart (down then up)"
+				return m, nil
+			}
 			return m, func() tea.Msg { return tui.ActionRequestMsg{Request: tui.ActionRequest{Kind: tui.ActionUp}} }
 		}
 	}

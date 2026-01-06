@@ -1,10 +1,13 @@
 package cmds
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-go-golems/devctl/pkg/config"
@@ -39,11 +42,38 @@ func newUpCmd() *cobra.Command {
 			if !opts.DryRun {
 				if _, err := os.Stat(state.StatePath(opts.RepoRoot)); err == nil {
 					if !force {
-						return errors.New("state exists; run devctl down first or use --force")
-					}
-					log.Info().Msg("existing state found; stopping first (--force)")
-					if err := stopFromState(cmd.Context(), opts); err != nil {
-						return err
+						aliveCount, err := countAliveFromState(opts.RepoRoot)
+						if err != nil {
+							return err
+						}
+
+						prompt := "state exists; run devctl down first or use --force"
+						if aliveCount == 0 {
+							prompt = "state exists but no services appear alive; remove state and continue? (y/N): "
+						} else {
+							prompt = "state exists; restart (down then up)? (y/N): "
+						}
+
+						if isInteractive(cmd.InOrStdin()) {
+							ok, err := promptConfirm(cmd.ErrOrStderr(), cmd.InOrStdin(), prompt)
+							if err != nil {
+								return err
+							}
+							if !ok {
+								return errors.New("aborted")
+							}
+							log.Info().Msg("existing state found; stopping first (confirmed)")
+							if err := stopFromState(cmd.Context(), opts); err != nil {
+								return err
+							}
+						} else {
+							return errors.New("state exists; run devctl down first or use --force")
+						}
+					} else {
+						log.Info().Msg("existing state found; stopping first (--force)")
+						if err := stopFromState(cmd.Context(), opts); err != nil {
+							return err
+						}
 					}
 				}
 			}
@@ -196,4 +226,48 @@ func stopFromState(ctx context.Context, opts rootOptions) error {
 	defer cancel()
 	_ = sup.Stop(stopCtx, st)
 	return state.Remove(opts.RepoRoot)
+}
+
+func isInteractive(r io.Reader) bool {
+	f, ok := r.(*os.File)
+	if !ok {
+		return false
+	}
+	st, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return st.Mode()&os.ModeCharDevice != 0
+}
+
+func promptConfirm(out io.Writer, in io.Reader, prompt string) (bool, error) {
+	if _, err := fmt.Fprint(out, prompt); err != nil {
+		return false, err
+	}
+
+	br := bufio.NewReader(in)
+	line, err := br.ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return false, err
+	}
+
+	line = strings.TrimSpace(strings.ToLower(line))
+	if line == "y" || line == "yes" {
+		return true, nil
+	}
+	return false, nil
+}
+
+func countAliveFromState(repoRoot string) (int, error) {
+	st, err := state.Load(repoRoot)
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, svc := range st.Services {
+		if state.ProcessAlive(svc.PID) {
+			n++
+		}
+	}
+	return n, nil
 }
