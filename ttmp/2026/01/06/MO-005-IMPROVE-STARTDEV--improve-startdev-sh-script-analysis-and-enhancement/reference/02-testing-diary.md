@@ -44,6 +44,8 @@ WhenToUse: ""
 
 Keep a frequent, step-by-step diary of end-to-end testing and build verification for MO-005, including exact commands, outputs, failures, and checkpoints along the full `devctl` pipeline.
 
+Session:          019b94f5-80e5-7dd3-ac1d-795982d224c7
+
 ## Step 1: Baseline devctl tests and Moments plugin discovery
 
 Validated the current `devctl` baseline in isolation (Go tests + existing smoke tests), then sanity-checked that `devctl` can discover and handshake with the Moments plugin configured in `moments/.devctl.yaml`. This establishes a known-good starting point before expanding fixtures and adding new smoke/e2e flows.

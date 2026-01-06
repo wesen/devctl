@@ -89,3 +89,13 @@ Testing: add supervisor readiness/crash tests; add CI smoketest jobs split (devc
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/.github/workflows/push.yml — CI smoke-fast vs smoke-e2e jobs
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/supervise/supervisor_test.go — New supervisor failure-mode coverage
 
+
+## 2026-01-06
+
+Diary: annotate work session id 019b94f5-80e5-7dd3-ac1d-795982d224c7
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-005-IMPROVE-STARTDEV--improve-startdev-sh-script-analysis-and-enhancement/reference/01-diary.md — Added Session id line
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-005-IMPROVE-STARTDEV--improve-startdev-sh-script-analysis-and-enhancement/reference/02-testing-diary.md — Added Session id line
+
