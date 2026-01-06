@@ -15,5 +15,6 @@ func AddCommands(root *cobra.Command) error {
 	root.AddCommand(newDownCmd())
 	root.AddCommand(newStatusCmd())
 	root.AddCommand(newLogsCmd())
+	root.AddCommand(newTuiCmd())
 	return nil
 }

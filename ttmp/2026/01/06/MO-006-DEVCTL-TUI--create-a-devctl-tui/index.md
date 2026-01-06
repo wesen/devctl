@@ -9,21 +9,23 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md
+    - Path: devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md
       Note: Primary design baseline for the TUI
-    - Path: moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/02-devctl-tui-layout-ascii-baseline.md
+    - Path: devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/02-devctl-tui-layout-ascii-baseline.md
       Note: Design-doc form of the imported ASCII layout baseline
-    - Path: moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/devctl-tui-layout.md
+    - Path: devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md
       Note: Imported ASCII layout baseline
-    - Path: moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md
+    - Path: devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md
       Note: Design-to-code mapping and implementation seams
 ExternalSources:
-    - local:devctl-tui-layout.md
-Summary: "Design and task breakdown for building an interactive devctl TUI (dashboard, logs, pipeline/validation views)."
+    - local:01-devctl-tui-layout.md
+Summary: Design and task breakdown for building an interactive devctl TUI (dashboard, logs, pipeline/validation views).
 LastUpdated: 2026-01-06T15:24:23.877219622-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 
@@ -42,6 +44,7 @@ WhenToUse: ""
 - **Design (ASCII baseline)**: [Devctl TUI Layout: ASCII Baseline](./design-doc/02-devctl-tui-layout-ascii-baseline.md)
 - **Analysis (code mapping)**: [Devctl TUI: Code Mapping and Integration Analysis](./working-note/01-devctl-tui-code-mapping-and-integration-analysis.md)
 - **Diary**: [Diary](./diary/01-diary.md)
+- **Playbook**: [Testing devctl tui in tmux](./playbook/01-playbook-testing-devctl-tui-in-tmux.md)
 
 ## Status
 

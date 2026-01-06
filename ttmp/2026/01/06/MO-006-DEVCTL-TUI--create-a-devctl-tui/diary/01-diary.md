@@ -9,9 +9,9 @@ DocType: diary
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md
+    - Path: devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md
       Note: Ticket overview updated by docmgr import
-    - Path: moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/devctl-tui-layout.md
+    - Path: devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md
       Note: Input layout mockups imported from /tmp/devctl-tui.md
 ExternalSources: []
 Summary: ""
@@ -21,11 +21,17 @@ WhenToUse: ""
 ---
 
 
+
+
 # Diary
 
 ## Goal
 
 Capture the work and decisions involved in designing (and later implementing) a `devctl` TUI, including doc imports, design iterations, and task breakdown.
+
+## Session
+
+Session: `019b94f6-bdd4-7c12-8ac3-d6554e018c62`
 
 ## Step 1: Create ticket workspace and import layout source
 
@@ -43,7 +49,7 @@ I also created the ticket diary doc early so that subsequent design iterations a
 - Preserve `/tmp/devctl-tui.md` as an immutable input artifact, separate from the design docs we’ll edit.
 
 ### What worked
-- `docmgr import file` placed the layout doc at `.../sources/local/devctl-tui-layout.md` and updated the ticket `index.md`.
+- `docmgr import file` placed the layout doc at `.../sources/local/devctl-tui-layout.md` (now `.../sources/local/01-devctl-tui-layout.md`) and updated the ticket `index.md`.
 
 ### What didn't work
 - Typo while listing the ticket directory: `ls -λα ...` failed with `ls: invalid option -- 'á'`.
@@ -61,11 +67,11 @@ I also created the ticket diary doc early so that subsequent design iterations a
 - Add a dedicated design doc that “canonizes” the imported ASCII layout and links back to the imported source file.
 
 ### Code review instructions
-- Start at `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md` and the imported source in `.../sources/local/devctl-tui-layout.md`.
+- Start at `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md` and the imported source in `.../sources/local/01-devctl-tui-layout.md`.
 - Validate by running `docmgr ticket list --ticket MO-006-DEVCTL-TUI` and `docmgr doc list --ticket MO-006-DEVCTL-TUI`.
 
 ### Technical details
-- Imported source location: `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/devctl-tui-layout.md`
+- Imported source location: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md`
 
 ## Step 2: Draft the TUI design document (layout + incremental milestones)
 
@@ -75,7 +81,7 @@ This step intentionally “anchors” the scope around what exists today in `dev
 
 ### What I did
 - Created and drafted `design-doc/01-devctl-tui-layout-and-implementation-design.md`
-- Linked the design back to the imported ASCII baseline (`sources/local/devctl-tui-layout.md`)
+- Linked the design back to the imported ASCII baseline (`sources/local/01-devctl-tui-layout.md`)
 
 ### Why
 - Capture a single canonical view of the intended UX and incremental delivery plan before starting deeper code mapping.
@@ -99,11 +105,11 @@ This step intentionally “anchors” the scope around what exists today in `dev
 - Write an explicit “code mapping” analysis doc to ground the design in current `devctl/pkg/*` APIs and identify the smallest seams we need for a first implementation.
 
 ### Code review instructions
-- Review `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md` for correctness and scope.
+- Review `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md` for correctness and scope.
 - Cross-check the “Data sources” section against `devctl/pkg/state`, `devctl/cmd/devctl/cmds/logs.go`, and `devctl/cmd/devctl/cmds/up.go`.
 
 ### Technical details
-- Design doc path: `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md`
+- Design doc path: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md`
 
 ## Step 3: Write the code-mapping analysis document (design → existing `pkg/*`)
 
@@ -137,11 +143,11 @@ This step also identifies the likely “cleanest” integration approach: implem
 - Update the design doc to mark which fields/interactions are MVP vs optional enhancements, based on the mapping.
 
 ### Code review instructions
-- Read `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md` top-to-bottom.
+- Read `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md` top-to-bottom.
 - Cross-check the referenced packages: `devctl/pkg/state`, `devctl/pkg/engine`, `devctl/pkg/runtime`, `devctl/pkg/discovery`, `devctl/pkg/supervise`, and `devctl/cmd/devctl/cmds/{up,down,logs,plugins}.go`.
 
 ### Technical details
-- Analysis doc path: `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md`
+- Analysis doc path: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md`
 
 ## Step 4: Revise the design doc based on code mapping realities
 
@@ -175,10 +181,10 @@ The revision also adds a clear “stale state” policy for the dashboard: if th
 - Translate milestones into tasks with acceptance criteria and clear “done” definitions.
 
 ### Code review instructions
-- Review `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md` for MVP/optional clarity and consistency with the analysis doc.
+- Review `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md` for MVP/optional clarity and consistency with the analysis doc.
 
 ### Technical details
-- Revised design doc: `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md`
+- Revised design doc: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md`
 
 ## Step 5: Create an incremental task breakdown
 
@@ -209,10 +215,10 @@ Converted the milestone plan into a concrete task list in `tasks.md`, covering a
 - As soon as an actual TUI library is chosen, refine the MVP tasks to include the specific view components (lists, viewports) we’ll rely on.
 
 ### Code review instructions
-- Review `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md` for completeness and sequencing.
+- Review `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md` for completeness and sequencing.
 
 ### Technical details
-- Task list file: `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md`
+- Task list file: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md`
 
 ## Step 6: Doc hygiene (frontmatter validation + doctor)
 
@@ -221,7 +227,7 @@ Validated frontmatter for the docs created in this ticket and ran `docmgr doctor
 ### What I did
 - Ran `docmgr validate frontmatter` on the ticket docs (index, design-doc, working-note, diary)
 - Ran `docmgr doctor --ticket MO-006-DEVCTL-TUI`
-- Added YAML frontmatter to `sources/local/devctl-tui-layout.md` so `docmgr doctor` recognizes it as a valid Markdown doc
+- Added YAML frontmatter to `sources/local/devctl-tui-layout.md` (now `sources/local/01-devctl-tui-layout.md`) so `docmgr doctor` recognizes it as a valid Markdown doc
 
 ### Why
 - Keep the ticket workspace clean and avoid future “frontmatter parse” failures when searching/validating docs.
@@ -230,16 +236,16 @@ Validated frontmatter for the docs created in this ticket and ran `docmgr doctor
 - After adding frontmatter, `docmgr doctor` no longer reports an error for the imported layout file (only a non-blocking numeric-prefix warning).
 
 ### What didn't work
-- `docmgr validate frontmatter --doc ...` initially failed when I passed a path that already included the docs root (`moments/ttmp/...`), resulting in a doubled path like `.../moments/ttmp/moments/ttmp/...`. Using the docs-root-relative path (e.g., `2026/01/06/...`) worked.
+- `docmgr validate frontmatter --doc ...` initially failed when I passed a path that already included the docs root (`devctl/ttmp/...`), resulting in a doubled path like `.../devctl/ttmp/devctl/ttmp/...`. Using the docs-root-relative path (e.g., `2026/01/06/...`) worked.
 
 ### What I learned
-- For `docmgr validate frontmatter`, prefer docs-root-relative paths (under `moments/ttmp/`) to avoid path resolution surprises.
+- For `docmgr validate frontmatter`, prefer docs-root-relative paths (under `devctl/ttmp/`) to avoid path resolution surprises.
 
 ### What was tricky to build
 - N/A (hygiene step).
 
 ### What warrants a second pair of eyes
-- Whether we should rename `sources/local/devctl-tui-layout.md` to include a numeric prefix to eliminate the remaining doctor warning (would require updating doc links/relationships).
+- N/A (we later renamed the imported source to `sources/local/01-devctl-tui-layout.md` to satisfy the numeric-prefix policy).
 
 ### What should be done in the future
 - If the numeric-prefix warning becomes noisy, consider renaming the imported layout file and updating references.
@@ -249,7 +255,7 @@ Validated frontmatter for the docs created in this ticket and ran `docmgr doctor
 - Spot-check that the imported layout content begins immediately after frontmatter and remains intact.
 
 ### Technical details
-- Imported layout file: `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/devctl-tui-layout.md`
+- Imported layout file: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md`
 
 ## Step 7: Create a dedicated “layout baseline” design doc from the imported mockups
 
@@ -257,7 +263,7 @@ To match the ticket intent (“import the layout as a design doc”), I added a 
 
 ### What I did
 - Created `design-doc/02-devctl-tui-layout-ascii-baseline.md` and populated it with curated baseline screens
-- Linked it to the full imported baseline in `sources/local/devctl-tui-layout.md`
+- Linked it to the full imported baseline in `sources/local/01-devctl-tui-layout.md`
 
 ### Why
 - Make the imported layout discoverable as a first-class design doc in the ticket workspace, while still retaining the original imported file under `sources/`.
@@ -281,10 +287,10 @@ To match the ticket intent (“import the layout as a design doc”), I added a 
 - If the team prefers a single authoritative layout doc, consider moving more of the baseline screens into `design-doc/02-...` and treating `sources/` strictly as provenance.
 
 ### Code review instructions
-- Review `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/02-devctl-tui-layout-ascii-baseline.md` for fidelity to the baseline and readability.
+- Review `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/02-devctl-tui-layout-ascii-baseline.md` for fidelity to the baseline and readability.
 
 ### Technical details
-- Layout baseline design doc: `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/02-devctl-tui-layout-ascii-baseline.md`
+- Layout baseline design doc: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/02-devctl-tui-layout-ascii-baseline.md`
 
 ## Step 8: Improve ticket index discoverability
 
@@ -315,10 +321,10 @@ Updated the ticket `index.md` to include a short summary and direct links to the
 - N/A.
 
 ### Code review instructions
-- Open `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md` and verify the links resolve.
+- Open `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md` and verify the links resolve.
 
 ### Technical details
-- Ticket index: `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md`
+- Ticket index: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md`
 
 ## Step 9: Refine the Watermill/Bubble Tea architecture notes and update tasks
 
@@ -355,9 +361,175 @@ I also updated `tasks.md` to reflect this message-driven decomposition: the earl
 - Once a concrete TUI package layout is chosen (`devctl/pkg/tui` vs elsewhere), sync the working note’s file layout section to match the actual directory structure.
 
 ### Code review instructions
-- Read `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md` focusing on the “pattern reuse” and “event routing” sections.
-- Review `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md` and confirm the milestone ordering matches how you’d want to implement the system.
+- Read `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md` focusing on the “pattern reuse” and “event routing” sections.
+- Review `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md` and confirm the milestone ordering matches how you’d want to implement the system.
 
 ### Technical details
-- Working note: `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md`
-- Tasks file: `moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md`
+- Working note: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md`
+- Tasks file: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md`
+
+## Step 10: Track ticket move to `devctl/ttmp` and repair doc relationships
+
+Moved the ticket workspace under `devctl/ttmp/2026/01/06/...` and updated `docmgr` configuration so the ticket continues to be discoverable via `docmgr ticket tickets` and `docmgr doc list`. After the move, several documents still referenced the old `moments/ttmp/...` paths in frontmatter `RelatedFiles` and in prose, which caused `docmgr doctor` warnings and made clickable paths confusing.
+
+This step re-aligns the documentation to the new root: `RelatedFiles` now points at the moved doc paths under `devctl/ttmp/...`, and the diary/changelog text references were updated so reviewers land in the right place.
+
+### What I did
+- Confirmed `docmgr` root is now `devctl/ttmp` (via `.ttmp.yaml` and `docmgr status`)
+- Updated `RelatedFiles` entries (via `docmgr doc relate --remove-files` + `--file-note`) so they point to `devctl/ttmp/...`
+- Updated lingering `moments/ttmp/...` references in `diary/01-diary.md` and `changelog.md`
+- Re-ran `docmgr validate frontmatter` and `docmgr doctor --ticket MO-006-DEVCTL-TUI`
+
+### Why
+- Keep doc navigation reliable after reorganizing where ticket workspaces live.
+- Ensure `docmgr` tooling (doctor/graph) stays actionable instead of warning-noisy.
+
+### What worked
+- `docmgr` correctly discovers the ticket in the new root once `.ttmp.yaml` is updated.
+- Repairing `RelatedFiles` removes the “missing_related_file” warnings.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- `docmgr doctor` is a good “smoke test” after moves/renames because it catches stale `RelatedFiles` pointers immediately.
+
+### What was tricky to build
+- Avoiding half-updated pointers: some references live in YAML frontmatter (`RelatedFiles`), others live in prose (diary/changelog).
+
+### What warrants a second pair of eyes
+- N/A (numeric-prefix warning resolved by renaming the imported source to `sources/local/01-devctl-tui-layout.md`).
+
+### What should be done in the future
+- If we decide to rename the imported source to satisfy numeric-prefix policy, do it with a deliberate link/relationship update (or via a docmgr-supported move/renumber workflow).
+
+### Code review instructions
+- Run `docmgr doctor --ticket MO-006-DEVCTL-TUI` and confirm there are no errors.
+- Open `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md` and confirm the linked docs open correctly.
+
+### Technical details
+- Ticket workspace: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui`
+
+## Step 11: Implement Milestone 0 skeleton (bus → transform → forward → models)
+
+Implemented the first executable slice of the architecture described in the working note: a Watermill in-memory bus, a domain→UI transformer, and a UI forwarder that injects typed messages into a Bubble Tea program. On the UI side, I added a minimal root model composed of a dashboard and an event log; on the backend side, a state watcher publishes periodic snapshots from `.devctl/state.json`.
+
+This is intentionally “boring” UI: the main goal is to prove the event plumbing and model composition, and to create a safe place to iterate on richer views (services table, pipeline view, actions) without re-threading concurrency each time.
+
+### What I did
+- Added `devctl/pkg/tui` (topics, envelopes, bus, transformer, forwarder, state watcher, message types)
+- Added `devctl/pkg/tui/models` (root/dashboard/event log models; one model per file)
+- Added a new CLI entry: `devctl tui` (`devctl/cmd/devctl/cmds/tui.go`) and registered it in `devctl/cmd/devctl/cmds/root.go`
+- Added dependencies to `devctl/go.mod` for Watermill + Bubble Tea and ran `go mod tidy`
+- Validated formatting and tests:
+  - `cd devctl && go fmt ./...`
+  - `cd devctl && go test ./...`
+
+### Why
+- Establish the “event spine” early so later features (pipeline progress, validation UX, plugin stream events) become incremental handlers/messages rather than ad-hoc goroutines poking UI state.
+
+### What worked
+- The basic plumbing works end-to-end: watcher publishes domain envelopes → transformer emits UI envelopes → forwarder calls `Program.Send` → models update.
+- `go test ./...` stayed green after adding the new packages/command.
+
+### What didn't work
+- I initially tried to format with `gofmt -w ./...` and got: `stat ./...: no such file or directory` (because `gofmt` expects file paths; `go fmt ./...` is the right tool here).
+
+### What I learned
+- Starting with an “event log” view is a great way to debug the system: you can observe what the backend thinks is happening before worrying about polished widgets.
+
+### What was tricky to build
+- Coordinating lifecycles: the router, watcher, and Bubble Tea program all need a single cancellation point so we don’t leave goroutines running after exit.
+
+### What warrants a second pair of eyes
+- Whether the Watermill std logger is acceptable for a TUI command, or whether we should swap to a quiet logger to avoid accidental terminal noise during UI rendering.
+
+### What should be done in the future
+- Upgrade the dashboard from “plain text” to a real selectable services table, but keep state updates flowing through `tea.Msg`.
+- Expand the transformer to emit richer UI messages (service rows, pipeline phase updates) rather than only a snapshot + generic event lines.
+
+### Code review instructions
+- Start at `devctl/cmd/devctl/cmds/tui.go` for the wiring and lifecycle.
+- Then review the event spine: `devctl/pkg/tui/bus.go`, `devctl/pkg/tui/transform.go`, `devctl/pkg/tui/forward.go`, `devctl/pkg/tui/state_watcher.go`.
+- Validate with `cd devctl && go test ./...` and run the UI against a repo with `.devctl/state.json`: `cd devctl && go run ./cmd/devctl tui --repo-root /path/to/repo`.
+
+### Technical details
+- New package root: `devctl/pkg/tui`
+
+## Step 12: Run the TUI in tmux against a realistic fixture + write a test playbook
+
+Ran `devctl tui` in a real `tmux` session and captured the output to verify that the UI renders the state snapshot as expected (running status + service list). To make this repeatable, I wrote a playbook that generates a “sensible” temporary repo-root using the existing `testdata/plugins/e2e` fixture: it builds two small service binaries, writes a `.devctl.yaml`, runs `devctl up` to persist state, and then launches the TUI against that repo-root.
+
+This exposed one important UX issue: Watermill’s default std logger printed router lifecycle logs into the terminal, polluting the TUI output. Switching the TUI bus to `watermill.NopLogger{}` removes that noise and makes the captured output look like an actual UI.
+
+### What I did
+- Used the existing E2E fixture plugin (`devctl/testdata/plugins/e2e/plugin.py`) to create a temporary repo-root with two supervised services and persisted `.devctl/state.json`
+- Ran `devctl tui` inside tmux and captured the screen via `tmux capture-pane`
+- Wrote a repeatable playbook: `playbook/01-playbook-testing-devctl-tui-in-tmux.md`
+- Changed the Watermill bus logger to `watermill.NopLogger{}` so the TUI isn’t polluted by router logs
+
+### Why
+- We need a small, deterministic environment to validate the UI without depending on Moments or other large repos.
+- A playbook makes it easy to reproduce UI regressions and capture output for review.
+
+### What worked
+- The TUI shows `System: Running` and lists the supervised services (PIDs + alive status) when pointed at a repo-root with a valid `.devctl/state.json`.
+- The tmux capture is a good “snapshot test” of the UI at this stage.
+
+### What didn't work
+- Before switching to `watermill.NopLogger{}`, the captured output included Watermill router logs (e.g., `[watermill] ... Adding handler ...`), which is unacceptable for a TUI.
+
+### What I learned
+- Even “harmless” background logs are very visible in a TUI context; the bus/logger choice matters early.
+
+### What was tricky to build
+- Cleaning up correctly when testing: if the temp repo-root is deleted before running `devctl down`, the supervisor state is lost and processes can be left running. The playbook orders cleanup as: `down` → kill tmux session → delete repo-root.
+
+### What warrants a second pair of eyes
+- Whether we want a configurable logger mode (silent by default, verbose with a flag) for debugging bus routing issues.
+
+### What should be done in the future
+- Consider adding a small “fixtures” helper command (`devctl fixtures create`) instead of a shell snippet, if we find ourselves repeating this workflow often.
+
+### Code review instructions
+- Run the playbook in `playbook/01-playbook-testing-devctl-tui-in-tmux.md` and confirm the captured output contains only UI text (no router logs).
+- Optionally, attach to tmux and press `tab` to switch to the event view, then `q` to exit.
+
+### Technical details
+- Playbook: `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/playbook/01-playbook-testing-devctl-tui-in-tmux.md`
+
+## Step 13: Enable alternate screen for `devctl tui`
+
+Enabled Bubble Tea’s alternate screen mode for the TUI so the interface runs in a clean screen buffer and, on exit, returns you to your previous terminal contents. This makes the TUI feel much more “app-like” and also helps keep incidental output from mixing with the UI.
+
+Note: alternate screen is not a substitute for silencing background logs; anything written to stdout/stderr while the UI is running can still corrupt the UI. We keep the Watermill router logger disabled as the primary fix for that, and the alternate screen as an additional UX improvement.
+
+### What I did
+- Updated `devctl tui` to use Bubble Tea alternate screen by default (`--alt-screen=true`)
+- Updated the tmux test playbook’s exit criteria to include alternate screen behavior
+
+### Why
+- Improve UX: users expect TUIs to take over the screen and restore the terminal afterwards.
+- Reduce “visual noise” when running the UI in tmux and capturing output.
+
+### What worked
+- The TUI now runs in an alternate screen buffer by default and restores the previous screen on quit.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Alternate screen improves presentation, but log hygiene is still required; any stray logs can still corrupt the UI while it’s active.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Whether `--alt-screen` should default to true (current) or be opt-in for users who prefer inline TUIs.
+
+### What should be done in the future
+- Consider adding a “debug mode” that enables Watermill logs to a file (not stdout) while keeping the UI clean.
+
+### Code review instructions
+- Run `cd devctl && go run ./cmd/devctl tui --repo-root /path/to/repo` and confirm quitting restores the original terminal screen.
+- Run with `--alt-screen=false` and confirm it behaves as before (no alternate screen).

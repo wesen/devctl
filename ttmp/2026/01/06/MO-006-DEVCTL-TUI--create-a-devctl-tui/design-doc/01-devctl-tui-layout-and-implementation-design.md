@@ -9,7 +9,7 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/devctl-tui-layout.md
+    - Path: devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md
       Note: Imported ASCII baseline for intended screens
 ExternalSources: []
 Summary: ""
@@ -17,6 +17,8 @@ LastUpdated: 2026-01-06T15:26:28.225316178-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 # Devctl TUI: Layout and Implementation Design
@@ -49,7 +51,7 @@ A TUI can make the core dev loop (start → inspect → fix → restart) substan
 
 ### Canonical layout (baseline)
 The initial layout is derived from the imported ASCII mockups:
-- Source (imported, immutable): `../sources/local/devctl-tui-layout.md`
+- Source (imported, immutable): `../sources/local/01-devctl-tui-layout.md`
 - The TUI will implement the same *conceptual* screens and interactions, but specific columns/fields are allowed to be “N/A” in early milestones when the data is not available yet (e.g., CPU/MEM).
 
 ### Views
@@ -197,5 +199,5 @@ This plan is milestone-driven so the TUI can ship early and get usage feedback.
 
 ## References
 
-- Imported ASCII layout baseline (source): `../sources/local/devctl-tui-layout.md`
+- Imported ASCII layout baseline (source): `../sources/local/01-devctl-tui-layout.md`
 - Ticket index: `../index.md`

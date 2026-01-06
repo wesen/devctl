@@ -11,8 +11,8 @@ Initialize ticket workspace; import devctl TUI layout source; add diary doc.
 
 ### Related Files
 
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/diary/01-diary.md — Start diary for design iterations
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/devctl-tui-layout.md — Imported ASCII layout baseline
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/diary/01-diary.md — Start diary for design iterations
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md — Imported ASCII layout baseline
 
 
 ## 2026-01-06
@@ -21,8 +21,8 @@ Draft TUI design doc with views, keybindings, and milestone-based implementation
 
 ### Related Files
 
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md — Primary design baseline
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/devctl-tui-layout.md — Referenced ASCII baseline
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md — Primary design baseline
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md — Referenced ASCII baseline
 
 
 ## 2026-01-06
@@ -31,7 +31,7 @@ Add code-mapping analysis doc tying TUI design to existing devctl packages and i
 
 ### Related Files
 
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md — Design-to-code mapping and integration seams
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md — Design-to-code mapping and integration seams
 
 
 ## 2026-01-06
@@ -40,7 +40,7 @@ Revise design doc to distinguish MVP vs optional fields and define stale-state d
 
 ### Related Files
 
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md — Updated MVP/optional field definitions and stale-state policy
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/01-devctl-tui-layout-and-implementation-design.md — Updated MVP/optional field definitions and stale-state policy
 
 
 ## 2026-01-06
@@ -49,7 +49,7 @@ Populate tasks.md with milestone-based implementation tasks for the devctl TUI (
 
 ### Related Files
 
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md — Concrete incremental task list
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md — Concrete incremental task list
 
 
 ## 2026-01-06
@@ -58,7 +58,7 @@ Doc hygiene: validate frontmatter; add frontmatter to imported layout source so 
 
 ### Related Files
 
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/devctl-tui-layout.md — Add frontmatter so docmgr can parse/validate imported artifact
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md — Add frontmatter so docmgr can parse/validate imported artifact
 
 
 ## 2026-01-06
@@ -67,8 +67,8 @@ Add a dedicated ASCII layout baseline design doc (excerpted screens) and link it
 
 ### Related Files
 
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/02-devctl-tui-layout-ascii-baseline.md — Baseline layout spec (design-doc)
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/devctl-tui-layout.md — Imported source backing the baseline
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/design-doc/02-devctl-tui-layout-ascii-baseline.md — Baseline layout spec (design-doc)
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md — Imported source backing the baseline
 
 
 ## 2026-01-06
@@ -77,7 +77,7 @@ Update ticket index summary and add key links to design/analysis/diary docs.
 
 ### Related Files
 
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md — Improve discoverability of core docs
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md — Improve discoverability of core docs
 
 
 ## 2026-01-06
@@ -86,7 +86,7 @@ Expand code-mapping working note with Watermill→Bubble Tea event architecture 
 
 ### Related Files
 
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md — Add Watermill integration + Bubble Tea model composition and event routing
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md — Add Watermill integration + Bubble Tea model composition and event routing
 
 
 ## 2026-01-06
@@ -95,6 +95,57 @@ Refine working note prose for Watermill→Bubble Tea architecture; update tasks.
 
 ### Related Files
 
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md — Decompose work into domain events
-- /home/manuel/workspaces/2026-01-06/moments-dev-tool/moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md — More engaging narrative + clearer mental model
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md — Decompose work into domain events
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/working-note/01-devctl-tui-code-mapping-and-integration-analysis.md — More engaging narrative + clearer mental model
 
+## 2026-01-06
+
+Ticket moved under devctl/ttmp; update docmgr root and repair RelatedFiles/path references.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/diary/01-diary.md — Record ticket move and relationship repairs
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/index.md — Fix RelatedFiles to point at moved docs
+
+
+## 2026-01-06
+
+Implement M0 TUI skeleton: Watermill bus + domain→UI transformer + UI forwarder; add devctl tui command; add state watcher and minimal dashboard/eventlog models.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/tui.go — New devctl tui command wiring bus/watcher/program
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/bus.go — In-memory Watermill router/pubsub used as event spine
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/forward.go — UI envelope → Program.Send forwarder
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/root_model.go — Root model composing dashboard + event log
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/state_watcher.go — Publishes state snapshots from .devctl/state.json
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/transform.go — Domain→UI envelope transformer
+
+
+## 2026-01-06
+
+Add tmux testing playbook for devctl tui and silence Watermill logs in the TUI bus.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/bus.go — Use watermill.NopLogger to avoid polluting the TUI
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/playbook/01-playbook-testing-devctl-tui-in-tmux.md — Repeatable procedure for fixture repo + tmux capture
+
+
+## 2026-01-06
+
+Enable Bubble Tea alternate screen for devctl tui (default on; --alt-screen toggle).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/tui.go — Enable tea.WithAltScreen by default
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/playbook/01-playbook-testing-devctl-tui-in-tmux.md — Document alt screen expectation
+
+
+## 2026-01-06
+
+Diary: annotate work session id 019b94f6-bdd4-7c12-8ac3-d6554e018c62.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/diary/01-diary.md — Record session id for all work so far
