@@ -20,7 +20,7 @@ RelatedFiles:
       Note: MVP scope trimming decisions captured here
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-06T18:41:20-05:00
+LastUpdated: 2026-01-06T18:45:34-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -389,3 +389,54 @@ This step also included an explicit “test often” loop: `go fmt ./...` and re
 - JS helpers are injected via a prelude string (`globalThis.log`) rather than `require()`.
 - Event timestamp normalization prefers `Date.toISOString()` when available; otherwise accepts string.
 - Unknown top-level keys returned by JS are moved into `event.fields` unless explicitly set there already.
+
+## Step 7: Tighten Timeout Accounting + Stabilize a Flaky Runtime Test
+
+After the initial implementation landed, I noticed two follow-up issues while running `go test ./...`: the `logjs` timeout counter would increment on any hook error if a timeout was configured, and an existing `pkg/runtime` test (`TestRuntime_CallTimeout`) was flaky because it used a 200ms context for both plugin startup and the call under test.
+
+This step makes timeout accounting precise (only count when we are interrupted specifically by the timeout sentinel) and makes the runtime timeout test stable by giving plugin startup its own longer context while keeping the call itself constrained to 200ms.
+
+**Commit (code):** 5a371c7bda04d5f376d14a4df4233563a334d339 — "logjs: improve timeout detection; fix runtime timeout test"
+
+### What I did
+- Updated `devctl/pkg/logjs/module.go`:
+  - introduced `ErrHookTimeout`
+  - detect timeouts via `errors.As(err, *goja.InterruptedError)` and `InterruptedError.Value()`
+  - increment `Stats.HookTimeouts` only when the interrupt value matches `ErrHookTimeout`
+- Updated `devctl/pkg/runtime/runtime_test.go`:
+  - use `startCtx` (2s) for plugin startup
+  - use `callCtx` (200ms) for `c.Call(...)`, preserving the timeout assertion
+- Ran `go test ./... -count=1`.
+
+### Why
+- Timeout metrics should represent actual timeouts, not “any error while a timeout is configured”.
+- The runtime test should validate call timeout semantics, not depend on plugin startup completing inside 200ms.
+
+### What worked
+- `go test ./... -count=1` is stable again.
+
+### What didn't work
+- N/A (small corrective change).
+
+### What I learned
+- `goja` exposes `*goja.InterruptedError` with the original `Interrupt` value accessible via `Value()`, which is the cleanest way to classify interrupts.
+
+### What was tricky to build
+- N/A (straightforward refactor + test adjustment).
+
+### What warrants a second pair of eyes
+- Confirm the chosen timeout sentinel (`ErrHookTimeout`) and classification logic matches how we want to report/handle other interrupts in the future (e.g. ctx cancellation).
+
+### What should be done in the future
+- Consider adding context-cancellation interrupts (separate from timeouts) if we want `ProcessLine(ctx, ...)` to be cancellable mid-hook.
+
+### Code review instructions
+- Review timeout detection:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/module.go`
+- Review runtime test adjustment:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/runtime/runtime_test.go`
+- Validate:
+  - `go test ./... -count=1`
+
+### Technical details
+- Timeout classification uses `errors.As(err, *goja.InterruptedError)` and checks `InterruptedError.Value()` for `ErrHookTimeout`.
