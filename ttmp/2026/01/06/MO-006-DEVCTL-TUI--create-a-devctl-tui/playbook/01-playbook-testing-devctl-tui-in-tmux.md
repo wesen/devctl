@@ -47,7 +47,17 @@ This fixture mirrors what a “real” repo looks like:
   - `http` (health endpoint)
   - `spewer` (writes logs continuously)
 
-It is copied from the existing smoke test logic in `devctl/cmd/devctl/cmds/smoketest_e2e.go`, but we keep the directory around so we can point the TUI at it.
+It is copied from the existing smoke test logic in `devctl/cmd/devctl/cmds/smoketest_e2e.go`, and is also available as a ticket-local setup script so you don’t have to copy/paste this every time.
+
+Preferred (script):
+
+```bash
+cd /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl
+REPO_ROOT="$(./ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/scripts/setup-fixture-repo-root.sh)"
+echo "REPO_ROOT=$REPO_ROOT"
+```
+
+Manual (inline steps, equivalent):
 
 ```bash
 set -euo pipefail
