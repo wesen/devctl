@@ -439,9 +439,10 @@ func runUp(ctx context.Context, opts RootOptions, pub message.Publisher, runID s
 		return err
 	}
 	_ = publishPipelineBuildResult(pub, PipelineBuildResult{
-		RunID: runID,
-		At:    time.Now(),
-		Steps: stepResultsFromEngine(br.Steps),
+		RunID:     runID,
+		At:        time.Now(),
+		Steps:     stepResultsFromEngine(br.Steps),
+		Artifacts: br.Artifacts,
 	})
 	_ = publishPipelinePhaseFinished(pub, PipelinePhaseFinished{
 		RunID:      runID,
@@ -468,9 +469,10 @@ func runUp(ctx context.Context, opts RootOptions, pub message.Publisher, runID s
 		return err
 	}
 	_ = publishPipelinePrepareResult(pub, PipelinePrepareResult{
-		RunID: runID,
-		At:    time.Now(),
-		Steps: stepResultsFromEngine(pr.Steps),
+		RunID:     runID,
+		At:        time.Now(),
+		Steps:     stepResultsFromEngine(pr.Steps),
+		Artifacts: pr.Artifacts,
 	})
 	_ = publishPipelinePhaseFinished(pub, PipelinePhaseFinished{
 		RunID:      runID,

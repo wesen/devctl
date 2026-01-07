@@ -20,14 +20,29 @@ type PipelineModel struct {
 	phaseOrder []tui.PipelinePhase
 	phases     map[tui.PipelinePhase]*pipelinePhaseState
 
-	buildSteps   []tui.PipelineStepResult
-	prepareSteps []tui.PipelineStepResult
-	validate     *tui.PipelineValidateResult
-	launchPlan   *tui.PipelineLaunchPlan
+	buildSteps       []tui.PipelineStepResult
+	prepareSteps     []tui.PipelineStepResult
+	buildArtifacts   map[string]string
+	prepareArtifacts map[string]string
+	validate         *tui.PipelineValidateResult
+	launchPlan       *tui.PipelineLaunchPlan
 
+	focus            pipelineFocus
+	buildCursor      int
+	buildShow        bool
+	prepareCursor    int
+	prepareShow      bool
 	validationCursor int
 	validationShow   bool
 }
+
+type pipelineFocus string
+
+const (
+	pipelineFocusBuild      pipelineFocus = "build"
+	pipelineFocusPrepare    pipelineFocus = "prepare"
+	pipelineFocusValidation pipelineFocus = "validation"
+)
 
 type pipelinePhaseState struct {
 	startedAt  time.Time
@@ -52,17 +67,26 @@ func (m PipelineModel) Update(msg tea.Msg) (PipelineModel, tea.Cmd) {
 	switch v := msg.(type) {
 	case tea.KeyMsg:
 		switch v.String() {
+		case "b":
+			m.focus = pipelineFocusBuild
+			m.buildShow = true
+			return m, nil
+		case "p":
+			m.focus = pipelineFocusPrepare
+			m.prepareShow = true
+			return m, nil
+		case "v":
+			m.focus = pipelineFocusValidation
+			m.validationShow = true
+			return m, nil
 		case "up", "k":
-			m.validationCursor--
-			if m.validationCursor < 0 {
-				m.validationCursor = 0
-			}
+			m = m.moveCursor(-1)
 			return m, nil
 		case "down", "j":
-			m.validationCursor++
+			m = m.moveCursor(1)
 			return m, nil
 		case "enter":
-			m.validationShow = !m.validationShow
+			m = m.toggleDetails()
 			return m, nil
 		default:
 			return m, nil
@@ -73,8 +97,15 @@ func (m PipelineModel) Update(msg tea.Msg) (PipelineModel, tea.Cmd) {
 		m.runFinished = nil
 		m.buildSteps = nil
 		m.prepareSteps = nil
+		m.buildArtifacts = nil
+		m.prepareArtifacts = nil
 		m.validate = nil
 		m.launchPlan = nil
+		m.focus = pipelineFocusBuild
+		m.buildCursor = 0
+		m.buildShow = false
+		m.prepareCursor = 0
+		m.prepareShow = false
 		m.validationCursor = 0
 		m.validationShow = false
 
@@ -127,12 +158,17 @@ func (m PipelineModel) Update(msg tea.Msg) (PipelineModel, tea.Cmd) {
 			return m, nil
 		}
 		m.buildSteps = append([]tui.PipelineStepResult{}, v.Result.Steps...)
+		m.buildArtifacts = copyStringMap(v.Result.Artifacts)
+		if m.focus == "" {
+			m.focus = pipelineFocusBuild
+		}
 		return m, nil
 	case tui.PipelinePrepareResultMsg:
 		if m.runStarted == nil || m.runStarted.RunID != v.Result.RunID {
 			return m, nil
 		}
 		m.prepareSteps = append([]tui.PipelineStepResult{}, v.Result.Steps...)
+		m.prepareArtifacts = copyStringMap(v.Result.Artifacts)
 		return m, nil
 	case tui.PipelineValidateResultMsg:
 		if m.runStarted == nil || m.runStarted.RunID != v.Result.RunID {
@@ -173,6 +209,9 @@ func (m PipelineModel) View() string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("Pipeline: %s  run=%s  (%s)\n", run.Kind, run.RunID, status))
 	b.WriteString(fmt.Sprintf("Started: %s\n\n", run.At.Format("2006-01-02 15:04:05")))
+	if m.focus != "" {
+		b.WriteString(fmt.Sprintf("Focus: %s  (b build, p prepare, v validation; ↑/↓ select; enter details)\n\n", m.focus))
+	}
 
 	b.WriteString("Phases:\n")
 	for _, p := range m.phaseOrder {
@@ -183,16 +222,36 @@ func (m PipelineModel) View() string {
 
 	if len(m.buildSteps) > 0 {
 		b.WriteString("Build steps:\n")
-		for _, s := range m.buildSteps {
-			b.WriteString(fmt.Sprintf("- %s: %s\n", s.Name, formatStep(s)))
+		for i, s := range m.buildSteps {
+			cursor := "-"
+			if m.focus == pipelineFocusBuild {
+				cursor = " "
+				if i == clampInt(m.buildCursor, 0, maxInt(0, len(m.buildSteps)-1)) {
+					cursor = ">"
+				}
+			}
+			b.WriteString(fmt.Sprintf("%s %s: %s\n", cursor, s.Name, formatStep(s)))
+		}
+		if m.focus == pipelineFocusBuild && m.buildShow {
+			m.renderBuildDetails(&b)
 		}
 		b.WriteString("\n")
 	}
 
 	if len(m.prepareSteps) > 0 {
 		b.WriteString("Prepare steps:\n")
-		for _, s := range m.prepareSteps {
-			b.WriteString(fmt.Sprintf("- %s: %s\n", s.Name, formatStep(s)))
+		for i, s := range m.prepareSteps {
+			cursor := "-"
+			if m.focus == pipelineFocusPrepare {
+				cursor = " "
+				if i == clampInt(m.prepareCursor, 0, maxInt(0, len(m.prepareSteps)-1)) {
+					cursor = ">"
+				}
+			}
+			b.WriteString(fmt.Sprintf("%s %s: %s\n", cursor, s.Name, formatStep(s)))
+		}
+		if m.focus == pipelineFocusPrepare && m.prepareShow {
+			m.renderPrepareDetails(&b)
 		}
 		b.WriteString("\n")
 	}
@@ -213,25 +272,24 @@ func (m PipelineModel) View() string {
 
 		issues := validationIssues(v)
 		if len(issues) > 0 {
-			if m.validationCursor >= len(issues) {
-				m.validationCursor = len(issues) - 1
+			b.WriteString("Validation issues:\n")
+			if m.focus != pipelineFocusValidation {
+				b.WriteString("(press v to focus)\n")
 			}
-			if m.validationCursor < 0 {
-				m.validationCursor = 0
-			}
-
-			b.WriteString("Validation issues (↑/↓ select, enter toggle details):\n")
 			for i, is := range issues {
-				cursor := " "
-				if i == m.validationCursor {
-					cursor = ">"
+				cursor := "-"
+				if m.focus == pipelineFocusValidation {
+					cursor = " "
+					if i == clampInt(m.validationCursor, 0, maxInt(0, len(issues)-1)) {
+						cursor = ">"
+					}
 				}
 				b.WriteString(fmt.Sprintf("%s %s %s: %s\n", cursor, is.kind, is.code, is.message))
 			}
 			b.WriteString("\n")
 
-			if m.validationShow {
-				sel := issues[m.validationCursor]
+			if m.focus == pipelineFocusValidation && m.validationShow {
+				sel := issues[clampInt(m.validationCursor, 0, maxInt(0, len(issues)-1))]
 				b.WriteString(fmt.Sprintf("Details: %s %s\n", sel.kind, sel.code))
 				if sel.details == nil || len(sel.details) == 0 {
 					b.WriteString("(no details)\n\n")
@@ -277,6 +335,66 @@ func (m PipelineModel) View() string {
 	return b.String()
 }
 
+func (m PipelineModel) moveCursor(delta int) PipelineModel {
+	switch m.focus {
+	case pipelineFocusPrepare:
+		m.prepareCursor = clampInt(m.prepareCursor+delta, 0, maxInt(0, len(m.prepareSteps)-1))
+	case pipelineFocusValidation:
+		v := m.validate
+		issues := validationIssues(v)
+		m.validationCursor = clampInt(m.validationCursor+delta, 0, maxInt(0, len(issues)-1))
+	default:
+		m.buildCursor = clampInt(m.buildCursor+delta, 0, maxInt(0, len(m.buildSteps)-1))
+	}
+	return m
+}
+
+func (m PipelineModel) toggleDetails() PipelineModel {
+	switch m.focus {
+	case pipelineFocusPrepare:
+		m.prepareShow = !m.prepareShow
+	case pipelineFocusValidation:
+		m.validationShow = !m.validationShow
+	default:
+		m.buildShow = !m.buildShow
+	}
+	return m
+}
+
+func (m PipelineModel) renderBuildDetails(b *strings.Builder) {
+	if len(m.buildSteps) == 0 {
+		return
+	}
+	idx := clampInt(m.buildCursor, 0, len(m.buildSteps)-1)
+	sel := m.buildSteps[idx]
+	b.WriteString("\n")
+	b.WriteString(fmt.Sprintf("Details: build step %q\n", sel.Name))
+	b.WriteString(fmt.Sprintf("- ok: %v\n", sel.Ok))
+	if sel.DurationMs > 0 {
+		b.WriteString(fmt.Sprintf("- duration: %s\n", formatDurationMs(sel.DurationMs)))
+	}
+	if len(m.buildArtifacts) > 0 {
+		b.WriteString(fmt.Sprintf("- artifacts: %d\n", len(m.buildArtifacts)))
+	}
+}
+
+func (m PipelineModel) renderPrepareDetails(b *strings.Builder) {
+	if len(m.prepareSteps) == 0 {
+		return
+	}
+	idx := clampInt(m.prepareCursor, 0, len(m.prepareSteps)-1)
+	sel := m.prepareSteps[idx]
+	b.WriteString("\n")
+	b.WriteString(fmt.Sprintf("Details: prepare step %q\n", sel.Name))
+	b.WriteString(fmt.Sprintf("- ok: %v\n", sel.Ok))
+	if sel.DurationMs > 0 {
+		b.WriteString(fmt.Sprintf("- duration: %s\n", formatDurationMs(sel.DurationMs)))
+	}
+	if len(m.prepareArtifacts) > 0 {
+		b.WriteString(fmt.Sprintf("- artifacts: %d\n", len(m.prepareArtifacts)))
+	}
+}
+
 type validationIssue struct {
 	kind    string
 	code    string
@@ -304,6 +422,17 @@ func validationIssues(v *tui.PipelineValidateResult) []validationIssue {
 			message: e.Message,
 			details: e.Details,
 		})
+	}
+	return out
+}
+
+func copyStringMap(in map[string]string) map[string]string {
+	if in == nil {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for k, v := range in {
+		out[k] = v
 	}
 	return out
 }

@@ -61,15 +61,17 @@ type PipelineStepResult struct {
 }
 
 type PipelineBuildResult struct {
-	RunID string               `json:"run_id"`
-	At    time.Time            `json:"at"`
-	Steps []PipelineStepResult `json:"steps,omitempty"`
+	RunID     string               `json:"run_id"`
+	At        time.Time            `json:"at"`
+	Steps     []PipelineStepResult `json:"steps,omitempty"`
+	Artifacts map[string]string    `json:"artifacts,omitempty"`
 }
 
 type PipelinePrepareResult struct {
-	RunID string               `json:"run_id"`
-	At    time.Time            `json:"at"`
-	Steps []PipelineStepResult `json:"steps,omitempty"`
+	RunID     string               `json:"run_id"`
+	At        time.Time            `json:"at"`
+	Steps     []PipelineStepResult `json:"steps,omitempty"`
+	Artifacts map[string]string    `json:"artifacts,omitempty"`
 }
 
 type PipelineValidateResult struct {
