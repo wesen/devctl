@@ -326,6 +326,87 @@ Implemented all 11 tasks for Phase 2 (Dashboard Enhancements).
 
 ---
 
+### Step 5: Phase 3 Implementation - Service Detail Enhancements (22:00)
+
+Implemented all 10 tasks for Phase 3 (Service Detail Enhancements).
+
+#### 3.1 Enhanced Process Info Section
+
+**Expanded info box to show**:
+- Status icon + text + PID
+- CPU and Memory usage from ProcessStats
+- Uptime (formatted with formatDuration())
+- Command (truncated if too long)
+- Working directory (truncated if too long)
+- Stream selector (stdout/stderr) and follow state
+
+**New formatDuration() helper**:
+```go
+func formatDuration(d time.Duration) string {
+    // Returns "45s", "5m 30s", "2h 15m", "3d 12h"
+}
+```
+
+#### 3.2 Health Check Info
+
+**New renderHealthInfo() method**:
+- Shows health icon (●/○) and status (Healthy/Unhealthy/Unknown)
+- Displays check type (tcp/http)
+- Shows endpoint URL
+- Last check time and response time in ms
+
+**Layout**:
+```
+╭─ Health ────────────────────────────────────────────────────╮
+│ ● Healthy                                                   │
+│ Type:     http                                              │
+│ Endpoint: http://localhost:8080/health                      │
+│ Last:     2s ago (45ms)                                     │
+╰─────────────────────────────────────────────────────────────╯
+```
+
+#### 3.3 Environment Variables
+
+**New renderEnvVars() method**:
+- Shows env vars in compact format
+- Truncates long values
+- Limits width to prevent overflow
+- Shows count in title
+
+**Layout**:
+```
+╭─ Environment (5) ──────────────────────────────────────────╮
+│ PORT=8080  DB_URL=postgresql://...  ENV=development         │
+╰─────────────────────────────────────────────────────────────╯
+```
+
+#### 3.4 New Keybindings
+
+**Added to Update()**:
+- `s` - Stop service (sends ActionStop request)
+- `r` - Restart service (sends ActionRestart request)
+- `d` - Detach (go back to dashboard without stopping)
+
+**Updated header keybindings hint**:
+`[s] stop  [r] restart  [esc] back`
+
+**New types added**:
+- `ActionStop` action kind in actions.go
+- `Service` field in ActionRequest for targeting specific service
+- `NavigateBackMsg` message type
+
+#### Files Modified
+- `pkg/tui/models/service_model.go` - Major View() refactor, new helper methods
+- `pkg/tui/models/root_model.go` - Handle NavigateBackMsg
+- `pkg/tui/actions.go` - Added ActionStop, Service field
+- `pkg/tui/msgs.go` - Added NavigateBackMsg
+
+#### Testing
+- `go build ./...` passes
+- All packages compile without errors
+
+---
+
 ### Technical References
 
 - Original Design: `MO-006-DEVCTL-TUI/.../01-devctl-tui-layout.md`

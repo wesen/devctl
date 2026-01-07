@@ -197,6 +197,10 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.service.follow {
 			return m, m.service.tickCmd()
 		}
+	case tui.NavigateBackMsg:
+		// Go back to dashboard from service view
+		m.active = ViewDashboard
+		return m, nil
 		return m, nil
 	case tui.ActionRequestMsg:
 		if m.publishAction == nil {

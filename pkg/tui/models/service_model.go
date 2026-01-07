@@ -172,6 +172,25 @@ func (m ServiceModel) Update(msg tea.Msg) (ServiceModel, tea.Cmd) {
 				return m, m.tickCmd()
 			}
 			return m, nil
+		case "s":
+			// Stop service (request down action for this service)
+			if m.name == "" {
+				return m, nil
+			}
+			return m, func() tea.Msg {
+				return tui.ActionRequestMsg{Request: tui.ActionRequest{Kind: tui.ActionStop, Service: m.name}}
+			}
+		case "r":
+			// Restart service
+			if m.name == "" {
+				return m, nil
+			}
+			return m, func() tea.Msg {
+				return tui.ActionRequestMsg{Request: tui.ActionRequest{Kind: tui.ActionRestart, Service: m.name}}
+			}
+		case "d":
+			// Detach - go back without stopping
+			return m, func() tea.Msg { return tui.NavigateBackMsg{} }
 		}
 
 		var cmd tea.Cmd
@@ -207,8 +226,8 @@ func (m ServiceModel) View() string {
 	}
 
 	// Calculate fixed section heights first
-	const infoBoxHeight = 6  // Compact info: status + stream + follow + border
-	const logBoxBorder = 3   // Top border + title + bottom border
+	const processInfoHeight = 8 // PID, Command, Cwd, CPU/MEM, uptime, streams + border
+	const logBoxBorder = 3      // Top border + title + bottom border
 	exitBoxHeight := 0
 	if !alive {
 		exitBoxHeight = m.exitInfoHeight()
@@ -221,9 +240,17 @@ func (m ServiceModel) View() string {
 	if m.searching {
 		searchHeight = 1
 	}
+	healthHeight := 0
+	if m.hasHealthConfig() {
+		healthHeight = 5
+	}
+	envHeight := 0
+	if m.hasEnvVars() {
+		envHeight = 4
+	}
 
 	// Log viewport gets remaining space
-	usedHeight := infoBoxHeight + exitBoxHeight + errBoxHeight + searchHeight + logBoxBorder
+	usedHeight := processInfoHeight + exitBoxHeight + errBoxHeight + searchHeight + logBoxBorder + healthHeight + envHeight
 	logViewportHeight := m.height - usedHeight
 	if logViewportHeight < 3 {
 		logViewportHeight = 3
@@ -231,7 +258,7 @@ func (m ServiceModel) View() string {
 
 	var sections []string
 
-	// Compact process info box
+	// Enhanced process info box
 	statusIcon := styles.StatusIcon(alive)
 	statusText := "Running"
 	statusStyle := theme.StatusRunning
@@ -240,7 +267,40 @@ func (m ServiceModel) View() string {
 		statusStyle = theme.StatusDead
 	}
 
-	// Build compact info line
+	// Get process stats
+	cpuText := "-"
+	memText := "-"
+	if m.last != nil && m.last.ProcessStats != nil {
+		if stats, ok := m.last.ProcessStats[rec.PID]; ok {
+			cpuText = formatCPU(stats.CPUPercent)
+			memText = formatMem(stats.MemoryMB)
+		}
+	}
+
+	// Format command
+	cmdText := strings.Join(rec.Command, " ")
+	maxCmdLen := m.width - 18
+	if maxCmdLen > 0 && len(cmdText) > maxCmdLen {
+		cmdText = cmdText[:maxCmdLen-3] + "..."
+	}
+
+	// Format cwd
+	cwdText := rec.Cwd
+	maxCwdLen := m.width - 18
+	if maxCwdLen > 0 && len(cwdText) > maxCwdLen {
+		cwdText = "..." + cwdText[len(cwdText)-maxCwdLen+3:]
+	}
+
+	// Calculate uptime
+	uptimeText := "-"
+	if !rec.StartedAt.IsZero() && alive {
+		uptime := time.Since(rec.StartedAt)
+		uptimeText = formatDuration(uptime)
+	} else if !rec.StartedAt.IsZero() {
+		uptimeText = "started " + rec.StartedAt.Format("15:04:05")
+	}
+
+	// Build compact info lines
 	stdoutTab := "stdout"
 	stderrTab := "stderr"
 	if m.active == LogStdout {
@@ -254,16 +314,6 @@ func (m ServiceModel) View() string {
 		followText = "on"
 	}
 
-	// Truncate path if too long
-	path := m.activeState().path
-	if path == "" {
-		path = "(unknown)"
-	}
-	maxPathLen := m.width - 10
-	if maxPathLen > 0 && len(path) > maxPathLen {
-		path = "..." + path[len(path)-maxPathLen+3:]
-	}
-
 	infoContent := lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Center,
 			statusStyle.Render(statusIcon),
@@ -271,29 +321,48 @@ func (m ServiceModel) View() string {
 			theme.Title.Render(statusText),
 			"  ",
 			theme.TitleMuted.Render(fmt.Sprintf("PID %d", rec.PID)),
-			"    ",
+			"  ",
+			theme.TitleMuted.Render("CPU: "+cpuText),
+			"  ",
+			theme.TitleMuted.Render("MEM: "+memText),
+			"  ",
+			theme.TitleMuted.Render("Up: "+uptimeText),
+		),
+		theme.TitleMuted.Render("Cmd: "+cmdText),
+		theme.TitleMuted.Render("Cwd: "+cwdText),
+		lipgloss.JoinHorizontal(lipgloss.Center,
+			theme.TitleMuted.Render("Stream: "),
 			theme.TitleMuted.Render(stdoutTab),
-			"/",
+			theme.TitleMuted.Render("/"),
 			theme.TitleMuted.Render(stderrTab),
 			"  ",
-			theme.TitleMuted.Render("follow:"+followText),
+			theme.TitleMuted.Render("Follow: "+followText),
 		),
-		theme.TitleMuted.Render(path),
 	)
 
 	if m.filter != "" {
 		infoContent = lipgloss.JoinVertical(lipgloss.Left,
 			infoContent,
-			theme.TitleMuted.Render(fmt.Sprintf("filter: %q", m.filter)),
+			theme.TitleMuted.Render(fmt.Sprintf("Filter: %q", m.filter)),
 		)
 	}
 
 	infoBox := widgets.NewBox("Service: "+m.name).
-		WithTitleRight("[esc] back").
+		WithTitleRight("[s] stop  [r] restart  [esc] back").
 		WithContent(infoContent).
-		WithSize(m.width, infoBoxHeight)
+		WithSize(m.width, processInfoHeight)
 
 	sections = append(sections, infoBox.Render())
+
+	// Health check info
+	if healthHeight > 0 {
+		sections = append(sections, m.renderHealthInfo(theme))
+	}
+
+	// Environment variables
+	if envHeight > 0 {
+		sections = append(sections, m.renderEnvVars(theme, rec))
+	}
 
 	// Exit info for dead services (compact)
 	if !alive && exitBoxHeight > 0 {
@@ -437,8 +506,7 @@ func (m ServiceModel) tickCmd() tea.Cmd {
 
 func (m ServiceModel) resizeViewport() ServiceModel {
 	// Calculate viewport height based on available space
-	// Reserve space for: info box, optional exit box, optional error box, log box borders
-	const infoBoxHeight = 6
+	const processInfoHeight = 8
 	const logBoxBorder = 3
 
 	_, alive, found := m.lookupService()
@@ -457,7 +525,17 @@ func (m ServiceModel) resizeViewport() ServiceModel {
 		searchHeight = 1
 	}
 
-	reservedHeight := infoBoxHeight + exitBoxHeight + errBoxHeight + searchHeight + logBoxBorder
+	healthHeight := 0
+	if m.hasHealthConfig() {
+		healthHeight = 5
+	}
+
+	envHeight := 0
+	if m.hasEnvVars() {
+		envHeight = 4
+	}
+
+	reservedHeight := processInfoHeight + exitBoxHeight + errBoxHeight + searchHeight + logBoxBorder + healthHeight + envHeight
 	vpHeight := m.height - reservedHeight
 	if vpHeight < 3 {
 		vpHeight = 3
@@ -497,6 +575,127 @@ func (m ServiceModel) lookupService() (*state.ServiceRecord, bool, bool) {
 		}
 	}
 	return nil, false, false
+}
+
+func (m ServiceModel) hasHealthConfig() bool {
+	rec, _, found := m.lookupService()
+	if !found || rec == nil {
+		return false
+	}
+	return rec.HealthType != ""
+}
+
+func (m ServiceModel) hasEnvVars() bool {
+	rec, _, found := m.lookupService()
+	if !found || rec == nil {
+		return false
+	}
+	return len(rec.Env) > 0
+}
+
+func (m ServiceModel) renderHealthInfo(theme styles.Theme) string {
+	rec, _, found := m.lookupService()
+	if !found || rec == nil {
+		return ""
+	}
+
+	healthIcon := styles.IconUnknown
+	statusText := "Unknown"
+	statusStyle := theme.TitleMuted
+	endpoint := rec.HealthURL
+	if endpoint == "" {
+		endpoint = rec.HealthAddress
+	}
+	lastCheck := "-"
+	responseMs := "-"
+
+	if m.last != nil && m.last.Health != nil {
+		if h, ok := m.last.Health[m.name]; ok {
+			switch h.Status {
+			case tui.HealthHealthy:
+				healthIcon = styles.IconHealthy
+				statusText = "Healthy"
+				statusStyle = theme.StatusRunning
+			case tui.HealthUnhealthy:
+				healthIcon = styles.IconUnhealthy
+				statusText = "Unhealthy"
+				statusStyle = theme.StatusDead
+			}
+			if !h.LastCheck.IsZero() {
+				lastCheck = formatDuration(time.Since(h.LastCheck)) + " ago"
+			}
+			if h.ResponseMs > 0 {
+				responseMs = fmt.Sprintf("%dms", h.ResponseMs)
+			}
+			if h.Endpoint != "" {
+				endpoint = h.Endpoint
+			}
+		}
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Left,
+		lipgloss.JoinHorizontal(lipgloss.Center,
+			statusStyle.Render(healthIcon),
+			" ",
+			statusStyle.Render(statusText),
+		),
+		theme.TitleMuted.Render(fmt.Sprintf("Type:     %s", rec.HealthType)),
+		theme.TitleMuted.Render(fmt.Sprintf("Endpoint: %s", endpoint)),
+		theme.TitleMuted.Render(fmt.Sprintf("Last:     %s (%s)", lastCheck, responseMs)),
+	)
+
+	box := widgets.NewBox("Health").
+		WithContent(content).
+		WithSize(m.width, 5)
+
+	return box.Render()
+}
+
+func (m ServiceModel) renderEnvVars(theme styles.Theme, rec *state.ServiceRecord) string {
+	if len(rec.Env) == 0 {
+		return ""
+	}
+
+	// Format env vars compactly
+	var parts []string
+	maxLen := m.width - 10
+	currentLen := 0
+
+	for k, v := range rec.Env {
+		pair := k + "=" + v
+		if len(pair) > 30 {
+			pair = pair[:27] + "..."
+		}
+		if currentLen+len(pair)+2 > maxLen && len(parts) > 0 {
+			break // Don't overflow
+		}
+		parts = append(parts, pair)
+		currentLen += len(pair) + 2
+	}
+
+	content := theme.TitleMuted.Render(strings.Join(parts, "  "))
+
+	box := widgets.NewBox(fmt.Sprintf("Environment (%d)", len(rec.Env))).
+		WithContent(content).
+		WithSize(m.width, 4)
+
+	return box.Render()
+}
+
+// formatDuration formats a duration in a human-readable way.
+func formatDuration(d time.Duration) string {
+	if d < time.Minute {
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	}
+	if d < time.Hour {
+		return fmt.Sprintf("%dm %ds", int(d.Minutes()), int(d.Seconds())%60)
+	}
+	if d < 24*time.Hour {
+		return fmt.Sprintf("%dh %dm", int(d.Hours()), int(d.Minutes())%60)
+	}
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	return fmt.Sprintf("%dd %dh", days, hours)
 }
 
 func (m ServiceModel) syncPathsFromSnapshot() ServiceModel {

@@ -12,6 +12,8 @@ type NavigateToServiceMsg struct {
 	Name string
 }
 
+type NavigateBackMsg struct{}
+
 type ActionRequestMsg struct {
 	Request ActionRequest
 }

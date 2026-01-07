@@ -15,11 +15,13 @@ const (
 	ActionUp      ActionKind = "up"
 	ActionDown    ActionKind = "down"
 	ActionRestart ActionKind = "restart"
+	ActionStop    ActionKind = "stop" // Stop a specific service
 )
 
 type ActionRequest struct {
-	Kind ActionKind `json:"kind"`
-	At   time.Time  `json:"at"`
+	Kind    ActionKind `json:"kind"`
+	At      time.Time  `json:"at"`
+	Service string     `json:"service,omitempty"` // Optional: target specific service
 }
 
 func PublishAction(pub message.Publisher, req ActionRequest) error {

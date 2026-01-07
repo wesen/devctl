@@ -42,26 +42,26 @@
 
 ---
 
-## Phase 3: Service Detail Enhancements
+## Phase 3: Service Detail Enhancements ✅ COMPLETE
 
 ### 3.1 Process Info Section
-- [ ] 3.1.1 Add process info box (PID, Command, Cwd, CPU, MEM)
-- [ ] 3.1.2 Show started time/uptime (humanized)
-- [ ] 3.1.3 Adjust layout for all sections
+- [x] 3.1.1 Add process info box (PID, Command, Cwd, CPU, MEM)
+- [x] 3.1.2 Show started time/uptime (humanized)
+- [x] 3.1.3 Adjust layout for all sections
 
 ### 3.2 Health Check Info
-- [ ] 3.2.1 Add health section with status icon
-- [ ] 3.2.2 Show endpoint and last check time
+- [x] 3.2.1 Add health section with status icon
+- [x] 3.2.2 Show endpoint and last check time
 
 ### 3.3 Environment Variables
-- [ ] 3.3.1 Add env section with compact formatting
-- [ ] 3.3.2 Create env formatter (wrap to width)
-- [ ] 3.3.3 Optional: expand/collapse toggle
+- [x] 3.3.1 Add env section with compact formatting
+- [x] 3.3.2 Create env formatter (wrap to width)
+- [x] 3.3.3 Optional: expand/collapse toggle (skipped - compact works well)
 
 ### 3.4 Keybindings
-- [ ] 3.4.1 Add stop (s) keybinding
-- [ ] 3.4.2 Add detach (d) keybinding
-- [ ] 3.4.3 Update footer keybindings
+- [x] 3.4.1 Add stop (s) keybinding
+- [x] 3.4.2 Add detach (d) keybinding
+- [x] 3.4.3 Update footer keybindings
 
 ---
 
@@ -171,10 +171,10 @@
 |-------|-------|--------|
 | 1. Data Layer | 12 | ✅ Complete |
 | 2. Dashboard | 11 | ✅ Complete |
-| 3. Service Detail | 9 | ⏳ Not started |
+| 3. Service Detail | 10 | ✅ Complete |
 | 4. Events View | 14 | ⏳ Not started |
 | 5. Pipeline View | 10 | ⏳ Not started |
 | 6. Plugin View | 5 | ⏳ Not started |
 | 7. Navigation | 3 | ⏳ Not started |
 | 8. Polish | 11 | ⏳ Not started |
-| **Total** | **75** | |
+| **Total** | **76** | |
