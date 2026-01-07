@@ -183,3 +183,14 @@ Improve restart ergonomics: devctl up prompts when state exists (stale vs runnin
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/dashboard_model.go — Prompt restart on u when state exists
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/root_model.go — Persistent Status line for action failures/success
 
+
+## 2026-01-06
+
+Add persistent exit diagnostics: supervise wrapper writes per-service exit JSON (exit code + stderr tail) and devctl status surfaces it (commit 23cacc9).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/status.go — Include exit info + tail in status output
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/state/exit_info.go — ExitInfo schema and read/write
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/supervise/supervisor.go — Launch via wrapper when WrapperExe set
+

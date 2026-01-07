@@ -705,3 +705,53 @@ This step tightens the ergonomics in two places: the TUI now keeps a small persi
 
 ### Technical details
 - TTY detection is based on checking `os.ModeCharDevice` of stdin (TTY-only prompts).
+
+## Step 17: Persist exit diagnostics (exit code + stderr tail) for `status`
+
+When a service dies (like the `log-spewer` fixture hitting a Go deadlock panic), we previously only saw `alive: false` in `devctl status` with no clue *why*. That’s especially frustrating when you’re iterating quickly from the TUI: it looks like “something stopped”, but you have to manually open log files to understand whether it exited cleanly, crashed, or was killed.
+
+This step adds a lightweight, no-daemon way to capture exit information: services are now started via a small internal wrapper process (only when launched from the `devctl` binary), which waits for the real service process to exit and writes a JSON file containing the exit code and a tail of stderr. `devctl status` reads that exit JSON when a service is dead and includes it inline, so you can see both the exit code and the last few stderr lines immediately.
+
+**Commit (code):** 23cacc9 — "supervise: record exit info; status: show stderr tail"
+
+### What I did
+- Added an `ExitInfo` schema + read/write helpers in `devctl/pkg/state`
+- Added a hidden internal command `devctl __wrap-service` that:
+  - launches the actual service process
+  - forwards stdout/stderr to the normal log files
+  - writes `*.exit.json` with exit code + stderr tail when the service exits
+- Updated `pkg/supervise` to optionally start services via the wrapper (when `WrapperExe` is configured by the CLI/TUI runner)
+- Updated `devctl status` to include exit info for dead services and truncate stderr tails to `--tail-lines`
+
+### Why
+- “alive: false” without an error is not actionable; exit diagnostics should be available in the normal status path.
+- We want exit info without introducing a long-running daemon; a wrapper that outlives `devctl up` is a good fit.
+
+### What worked
+- Reproducing the `log-spewer` crash now yields `exit_code: 2` and includes the fatal deadlock panic tail directly in `devctl status`.
+
+### What didn't work
+- Initial attempt to always use the wrapper broke `pkg/supervise` unit tests because `os.Executable()` points at the `go test` binary, which doesn’t have the internal cobra command; switching to an explicit `WrapperExe` option fixed this.
+
+### What I learned
+- `kill(pid, 0)` treats zombies as “alive”; we need zombie-aware liveness checks when the parent process can create zombies (e.g., tests).
+
+### What was tricky to build
+- Making the wrapper opt-in so `pkg/supervise` remains usable as a library (and tests remain stable), while still enabling the richer behavior for the real CLI/TUI entry points.
+
+### What warrants a second pair of eyes
+- Whether the new `state.ServiceRecord.ExitInfo` field naming is the best long-term API (path vs inline struct), and whether we should standardize where these artifacts live under `.devctl/`.
+
+### What should be done in the future
+- Optionally include a small stdout tail as well (useful when errors are printed there).
+- Surface exit info in the TUI service detail view (not just `status`).
+
+### Code review instructions
+- Start at `devctl/pkg/supervise/supervisor.go` and `devctl/cmd/devctl/cmds/wrap_service.go`.
+- Validate with the e2e fixture repo and run:
+  - `devctl up`
+  - wait for a crash
+  - `devctl status --tail-lines 10`
+
+### Technical details
+- Exit info file format: JSON (`*.exit.json`) with `exit_code`, `signal`, and `stderr_tail`.
