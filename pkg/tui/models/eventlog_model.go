@@ -176,31 +176,37 @@ func (m EventLogModel) refreshViewportContent(gotoBottom bool) EventLogModel {
 			ts = time.Now()
 		}
 
-		// Determine icon and style based on content
-		icon := styles.IconInfo
-		style := theme.TitleMuted
-		text := e.Text
+		source := strings.TrimSpace(e.Source)
+		if source == "" {
+			source = "system"
+		}
 
-		if strings.Contains(text, "failed") || strings.Contains(text, "error") || strings.Contains(text, "Error") {
-			icon = styles.IconError
+		level := e.Level
+		if level == "" {
+			level = tui.LogLevelInfo
+		}
+
+		icon := styles.LogLevelIcon(string(level))
+		style := theme.TitleMuted
+		switch level {
+		case tui.LogLevelError:
 			style = theme.StatusDead
-		} else if strings.Contains(text, "ok:") || strings.Contains(text, "success") || strings.Contains(text, "passed") {
-			icon = styles.IconSuccess
-			style = theme.StatusRunning
-		} else if strings.Contains(text, "warn") || strings.Contains(text, "Warning") {
-			icon = styles.IconWarning
+		case tui.LogLevelWarn:
 			style = lipgloss.NewStyle().Foreground(theme.Warning)
-		} else if strings.Contains(text, "started") || strings.Contains(text, "running") {
-			icon = styles.IconRunning
-			style = theme.StatusRunning
+		case tui.LogLevelDebug:
+			style = theme.TitleMuted
+		case tui.LogLevelInfo:
+			style = theme.TitleMuted
 		}
 
 		line := lipgloss.JoinHorizontal(lipgloss.Center,
 			style.Render(icon),
 			" ",
 			theme.TitleMuted.Render(ts.Format("15:04:05")),
+			" ",
+			theme.TitleMuted.Render(fmt.Sprintf("[%s]", source)),
 			"  ",
-			style.Render(text),
+			style.Render(e.Text),
 		)
 		lines = append(lines, line)
 	}

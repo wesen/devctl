@@ -199,15 +199,30 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tui.ActionRequestMsg:
 		if m.publishAction == nil {
-			m.events = m.events.Append(tui.EventLogEntry{At: time.Now(), Text: fmt.Sprintf("action ignored: %s (no publisher)", v.Request.Kind)})
+			m.events = m.events.Append(tui.EventLogEntry{
+				At:     time.Now(),
+				Source: "ui",
+				Level:  tui.LogLevelWarn,
+				Text:   fmt.Sprintf("action ignored: %s (no publisher)", v.Request.Kind),
+			})
 			return m, nil
 		}
 		req := v.Request
 		return m, func() tea.Msg {
 			if err := m.publishAction(req); err != nil {
-				return tui.EventLogAppendMsg{Entry: tui.EventLogEntry{At: time.Now(), Text: fmt.Sprintf("action publish failed: %v", err)}}
+				return tui.EventLogAppendMsg{Entry: tui.EventLogEntry{
+					At:     time.Now(),
+					Source: "system",
+					Level:  tui.LogLevelError,
+					Text:   fmt.Sprintf("action publish failed: %v", err),
+				}}
 			}
-			return tui.EventLogAppendMsg{Entry: tui.EventLogEntry{At: time.Now(), Text: fmt.Sprintf("action requested: %s", req.Kind)}}
+			return tui.EventLogAppendMsg{Entry: tui.EventLogEntry{
+				At:     time.Now(),
+				Source: "system",
+				Level:  tui.LogLevelInfo,
+				Text:   fmt.Sprintf("action requested: %s", req.Kind),
+			}}
 		}
 	}
 

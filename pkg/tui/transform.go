@@ -34,8 +34,8 @@ func RegisterDomainToUITransformer(bus *Bus) {
 			return nil
 		}
 
-		publishEventText := func(at time.Time, text string) error {
-			entry := EventLogEntry{At: at, Text: text}
+		publishEventText := func(at time.Time, source string, level LogLevel, text string) error {
+			entry := EventLogEntry{At: at, Source: source, Level: level, Text: text}
 			return publishUI(UITypeEventAppend, entry)
 		}
 
@@ -57,7 +57,11 @@ func RegisterDomainToUITransformer(bus *Bus) {
 					text = "state: error"
 				}
 			}
-			if err := publishEventText(time.Now(), text); err != nil {
+			level := LogLevelInfo
+			if snap.Error != "" || !snap.Exists {
+				level = LogLevelWarn
+			}
+			if err := publishEventText(time.Now(), "system", level, text); err != nil {
 				return errors.Wrap(err, "publish ui event")
 			}
 			return nil
@@ -71,7 +75,7 @@ func RegisterDomainToUITransformer(bus *Bus) {
 			if ev.Reason != "" {
 				text = fmt.Sprintf("%s (%s)", text, ev.Reason)
 			}
-			if err := publishEventText(ev.When, text); err != nil {
+			if err := publishEventText(ev.When, ev.Name, LogLevelWarn, text); err != nil {
 				return errors.Wrap(err, "publish ui event")
 			}
 			return nil
@@ -81,7 +85,7 @@ func RegisterDomainToUITransformer(bus *Bus) {
 				return errors.Wrap(err, "unmarshal action log")
 			}
 
-			if err := publishEventText(logEv.At, logEv.Text); err != nil {
+			if err := publishEventText(logEv.At, "system", LogLevelInfo, logEv.Text); err != nil {
 				return errors.Wrap(err, "publish ui event")
 			}
 			return nil
@@ -93,7 +97,7 @@ func RegisterDomainToUITransformer(bus *Bus) {
 			if err := publishUI(UITypePipelineRunStarted, ev); err != nil {
 				return err
 			}
-			return publishEventText(ev.At, fmt.Sprintf("pipeline: started (%s)", ev.Kind))
+			return publishEventText(ev.At, "pipeline", LogLevelInfo, fmt.Sprintf("pipeline: started (%s)", ev.Kind))
 		case DomainTypePipelineRunFinished:
 			var ev PipelineRunFinished
 			if err := json.Unmarshal(env.Payload, &ev); err != nil {
@@ -103,13 +107,13 @@ func RegisterDomainToUITransformer(bus *Bus) {
 				return err
 			}
 			if ev.Ok {
-				return publishEventText(ev.At, fmt.Sprintf("pipeline: ok (%s)", ev.Kind))
+				return publishEventText(ev.At, "pipeline", LogLevelInfo, fmt.Sprintf("pipeline: ok (%s)", ev.Kind))
 			}
 			text := fmt.Sprintf("pipeline: failed (%s)", ev.Kind)
 			if ev.Error != "" {
 				text = fmt.Sprintf("%s: %s", text, ev.Error)
 			}
-			return publishEventText(ev.At, text)
+			return publishEventText(ev.At, "pipeline", LogLevelError, text)
 		case DomainTypePipelinePhaseStarted:
 			var ev PipelinePhaseStarted
 			if err := json.Unmarshal(env.Payload, &ev); err != nil {

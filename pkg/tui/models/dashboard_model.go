@@ -109,10 +109,12 @@ func (m DashboardModel) Update(msg tea.Msg) (DashboardModel, tea.Cmd) {
 				return m, func() tea.Msg {
 					err := syscall.Kill(pid, syscall.SIGTERM)
 					text := fmt.Sprintf("sent SIGTERM to %s pid=%d", name, pid)
+					level := tui.LogLevelInfo
 					if err != nil {
 						text = fmt.Sprintf("failed SIGTERM %s pid=%d: %v", name, pid, err)
+						level = tui.LogLevelError
 					}
-					return tui.EventLogAppendMsg{Entry: tui.EventLogEntry{At: time.Now(), Text: text}}
+					return tui.EventLogAppendMsg{Entry: tui.EventLogEntry{At: time.Now(), Source: name, Level: level, Text: text}}
 				}
 			case "n", "esc":
 				m.confirmKill = false
@@ -140,7 +142,7 @@ func (m DashboardModel) Update(msg tea.Msg) (DashboardModel, tea.Cmd) {
 			svc := m.selectedService()
 			if svc == nil || svc.PID <= 0 {
 				return m, func() tea.Msg {
-					return tui.EventLogAppendMsg{Entry: tui.EventLogEntry{At: time.Now(), Text: "kill: no selected pid"}}
+					return tui.EventLogAppendMsg{Entry: tui.EventLogEntry{At: time.Now(), Source: "ui", Level: tui.LogLevelWarn, Text: "kill: no selected pid"}}
 				}
 			}
 			m.confirmKill = true
