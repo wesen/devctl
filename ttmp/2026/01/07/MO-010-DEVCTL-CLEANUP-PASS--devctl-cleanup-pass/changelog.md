@@ -133,3 +133,12 @@ Add exhaustive real-world test tasks (fixtures + CLI + TUI via tmux)
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/reference/01-diary.md — Recorded Step 14
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/tasks.md — Added extensive manual validation matrix
 
+
+## 2026-01-07
+
+Testing: ran CLI smoketests and fixture-based CLI loops (MO-006 + MO-009), recorded results in Testing Diary
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/reference/03-testing-diary.md — Recorded CLI-only test runs and failures
+

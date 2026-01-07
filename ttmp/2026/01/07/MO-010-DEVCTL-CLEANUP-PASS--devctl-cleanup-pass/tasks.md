@@ -15,14 +15,14 @@
 - [x] Plugins: update in-repo examples + testdata plugins to protocol v2 and handshake-advertised commands
 - [x] Tests: update for v2 + add coverage for unsupported fast-fail and dynamic discovery (no commands.list)
 - [x] Validation: gofmt/go test; update diary + changelog; commit code and docs
-- [ ] [RealWorld/Build] cd devctl && go run ./cmd/devctl --help (binary starts, no panic)
-- [ ] [RealWorld/Build] cd devctl && go run ./cmd/devctl version (prints version)
-- [ ] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest (protocol handshake + ping)
-- [ ] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-failures (validate fail, launch fail, plugin timeout)
-- [ ] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-logs (follow + cancel promptness)
-- [ ] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-supervise (http-service plugin + GET)
-- [ ] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-e2e (build testapps; up/status/logs/down)
-- [ ] [RealWorld/Plugins] cd devctl && go run ./cmd/devctl --config .devctl.example.yaml plugins list (protocol_version shows v2)
+- [x] [RealWorld/Build] cd devctl && go run ./cmd/devctl --help (binary starts, no panic)
+- [x] [RealWorld/Build] cd devctl && go run ./cmd/devctl --version (prints version)
+- [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest (protocol handshake + ping)
+- [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-failures (validate fail, launch fail, plugin timeout)
+- [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-logs (follow + cancel promptness)
+- [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-supervise (http-service plugin + GET)
+- [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-e2e (build testapps; up/status/logs/down)
+- [x] [RealWorld/Plugins] cd devctl && go run ./cmd/devctl --config .devctl.example.yaml plugins list (protocol_version shows v2)
 - [ ] [RealWorld/Dynamic] Create temp repo with testdata/plugins/command; run devctl echo hello (dynamic command wired from handshake)
 - [ ] [RealWorld/Dynamic] Dynamic command collision: two command plugins both advertise echo; confirm warning and command still runs
 - [ ] [RealWorld/Dynamic] Dynamic commands should not exist when plugin lacks command.run (create temp plugin that advertises commands only; confirm no cobra subcommand)
@@ -32,21 +32,21 @@
 - [ ] [RealWorld/Runtime] Negative: noisy-handshake plugin (non-JSON before handshake) causes plugins list failure
 - [ ] [RealWorld/Runtime] Negative: noisy-after-handshake plugin causes a call to fail (cd devctl && go run ./cmd/devctl smoketest --plugin ./testdata/plugins/noisy-after-handshake/plugin.py)
 - [ ] [RealWorld/Meta] Verify request ctx repo_root/cwd/dry_run correctness by using a temp plugin that logs request.ctx to stderr
-- [ ] [Fixture/MO-006] Run ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/scripts/setup-fixture-repo-root.sh to create REPO_ROOT
-- [ ] [Fixture/MO-006] On MO-006 fixture: devctl plan (returns 2+ services; no errors)
-- [ ] [Fixture/MO-006] On MO-006 fixture: devctl up (starts services; state.json created)
-- [ ] [Fixture/MO-006] On MO-006 fixture: devctl status --tail-lines 25 (services alive true; includes stdout/stderr paths)
-- [ ] [Fixture/MO-006] On MO-006 fixture: devctl logs --service http (stdout non-empty)
-- [ ] [Fixture/MO-006] On MO-006 fixture: devctl logs --service http --stderr (stderr non-empty)
-- [ ] [Fixture/MO-006] On MO-006 fixture: devctl logs --service spewer --follow and cancel (ctrl+c) without delay
-- [ ] [Fixture/MO-006] On MO-006 fixture: devctl down (stops; removes state.json)
-- [ ] [Fixture/MO-006] On MO-006 fixture: devctl status after down should fail with missing state
-- [ ] [Fixture/MO-006] On MO-006 fixture: devctl up --dry-run prints JSON and does not create state
-- [ ] [Fixture/MO-009] Run ttmp/2026/01/06/MO-009-TUI-COMPLETE-FEATURES--complete-tui-features-per-mo-006-design/scripts/setup-comprehensive-fixture.sh to create REPO_ROOT
-- [ ] [Fixture/MO-009] On comprehensive fixture: devctl up succeeds (regression: no wrapper did not report child start)
-- [ ] [Fixture/MO-009] On comprehensive fixture: devctl status shows all services and exit info once short-lived exits
-- [ ] [Fixture/MO-009] On comprehensive fixture: devctl logs (stdout+stderr) for each service (backend, worker, log-producer, flaky, short-lived)
-- [ ] [Fixture/MO-009] On comprehensive fixture: devctl down works and removes state
+- [x] [Fixture/MO-006] Run ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/scripts/setup-fixture-repo-root.sh to create REPO_ROOT
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl plan (returns 2+ services; no errors)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl up (starts services; state.json created)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl status --tail-lines 25 (services alive true; includes stdout/stderr paths)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl logs --service http (stdout non-empty)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl logs --service http --stderr (stderr non-empty)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl logs --service spewer --follow and cancel (ctrl+c) without delay
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl down (stops; removes state.json)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl status after down should fail with missing state
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl up --dry-run prints JSON and does not create state
+- [x] [Fixture/MO-009] Run ttmp/2026/01/06/MO-009-TUI-COMPLETE-FEATURES--complete-tui-features-per-mo-006-design/scripts/setup-comprehensive-fixture.sh to create REPO_ROOT
+- [x] [Fixture/MO-009] On comprehensive fixture: devctl up succeeds (regression: no wrapper did not report child start)
+- [x] [Fixture/MO-009] On comprehensive fixture: devctl status shows all services and exit info once short-lived exits
+- [x] [Fixture/MO-009] On comprehensive fixture: devctl logs (stdout+stderr) for each service (backend, worker, log-producer, flaky, short-lived)
+- [x] [Fixture/MO-009] On comprehensive fixture: devctl down works and removes state
 - [ ] [WrapService] Directly run __wrap-service with a trivial command; verify ready-file written and exit-info JSON created
 - [ ] [TUI/Tmux] Create tmux session with 2 panes: left runs devctl tui; right runs devctl up/down/logs for the same repo-root
 - [ ] [TUI/Tmux] Use tmux capture-pane to save TUI output and errors during testing
