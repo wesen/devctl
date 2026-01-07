@@ -150,6 +150,16 @@ Diary: annotate work session id 019b94f6-bdd4-7c12-8ac3-d6554e018c62.
 
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/diary/01-diary.md — Record session id for all work so far
 
+## 2026-01-07
+
+Surface exit diagnostics in the TUI: show a compact `dead (exit=...)` hint on the dashboard and render exit code/signal + a small stderr tail excerpt in the service view (commit bd34996).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/dashboard_model.go — Read `*.exit.json` and append dashboard hint for dead services
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/service_model.go — Render exit details + stderr tail excerpt in the service view
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/root_model.go — Adjust child sizing so the status line doesn’t break layouts
+
 ## 2026-01-06
 
 Finalize M0 baseline: fix doc hygiene (numeric prefix) and land initial TUI skeleton (commit 2e22243).
@@ -193,4 +203,3 @@ Add persistent exit diagnostics: supervise wrapper writes per-service exit JSON 
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/status.go — Include exit info + tail in status output
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/state/exit_info.go — ExitInfo schema and read/write
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/supervise/supervisor.go — Launch via wrapper when WrapperExe set
-

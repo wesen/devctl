@@ -755,3 +755,48 @@ This step adds a lightweight, no-daemon way to capture exit information: service
 
 ### Technical details
 - Exit info file format: JSON (`*.exit.json`) with `exit_code`, `signal`, and `stderr_tail`.
+
+## Step 18: Show exit diagnostics in the TUI (dashboard + service view)
+
+After adding persistent exit diagnostics for `devctl status`, the next big usability step was to bring that information into the TUI, where you’re most likely iterating quickly. Seeing “dead” without context makes it hard to decide whether to restart, inspect logs, or fix configuration — especially for cases like the `log-spewer` deadlock where the key clue is right at the end of stderr.
+
+This step teaches the TUI to read the per-service `*.exit.json` and surface a compact hint in the dashboard (so you can spot failures at a glance) and a more detailed section in the service view (so you can see exit code/signal and the last few stderr lines without leaving the UI).
+
+**Commit (code):** bd34996 — "tui: show exit diagnostics for dead services"
+
+### What I did
+- Updated the dashboard list to append an exit hint for dead services (e.g. `dead (exit=2)` or `dead (sig=KILL)`) when `ExitInfo` is available.
+- Updated the service view to render an “Exit:” section for dead services, including exit code/signal, exit timestamp, and a small stderr tail excerpt.
+- Improved sizing so the root model’s header/status line doesn’t steal space from child models unpredictably.
+
+### Why
+- “dead” alone isn’t actionable; the exit code and the last few stderr lines usually explain *why* it died.
+- Keeping this information in the TUI avoids context-switching to `status` or opening log files just to understand a crash.
+
+### What worked
+- In the E2E fixture, when `log-spewer` crashes, the dashboard immediately shows `dead (exit=2)` and the service view shows the deadlock panic tail.
+- The header/viewport sizing changes keep the exit info visible without pushing the log viewport into negative/awkward sizes.
+
+### What didn't work
+- `tmux capture-pane` output can be misleading because Bubble Tea re-renders frequently; it may capture a mixture of frames rather than a clean static “screen”.
+
+### What I learned
+- The dashboard can stay lightweight by only showing a compact exit hint, while the service view is the right place for the “what happened” details.
+
+### What was tricky to build
+- Balancing “pin this exit info on screen” with a log viewport that can still scroll and follow; a fixed reserved-height calculation is simple but needs care around small terminals.
+
+### What warrants a second pair of eyes
+- Whether reading/parsing exit JSON on every snapshot update is acceptable in practice (it’s small, but it is on the UI thread); if it feels sluggish, we may want to cache more aggressively.
+
+### What should be done in the future
+- Add a small affordance to expand/collapse the stderr excerpt (or show more lines on demand).
+- Consider surfacing exit diagnostics into the event log as well (so failures show up even if you never open the service view).
+
+### Code review instructions
+- Review `devctl/pkg/tui/models/dashboard_model.go` for the exit hint logic.
+- Review `devctl/pkg/tui/models/service_model.go` for exit rendering and the reserved header/viewport sizing.
+- Validate with the fixture repo and run `devctl tui`, then confirm a dead service shows exit info in both the dashboard and service view.
+
+### Technical details
+- Exit info is read from the path stored in state (`state.ServiceRecord.ExitInfo`) using `state.ReadExitInfo`.

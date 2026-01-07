@@ -132,6 +132,8 @@ tmux attach -t devctl-tui
 # Inside the TUI:
 # - use `↑/↓` to select a service
 # - press `enter` (or `l`) to open the service log view
+#   - if a service is dead, the header shows exit_code/signal and a small stderr tail excerpt
+#   - the dashboard row also shows a compact hint like `dead (exit=2)` or `dead (sig=KILL)`
 # - press `tab` to switch stdout/stderr within the service view
 # - press `f` to toggle follow
 # - press `/` to filter log lines (type and press enter; `ctrl+l` clears)
@@ -145,6 +147,8 @@ tmux attach -t devctl-tui
 # - press `?` to toggle the help overlay
 # - press `q` to quit
 ```
+
+Note: `tmux capture-pane` is useful for quick “does it render” checks, but because the TUI is constantly re-rendering, the captured output can look like a mix of multiple frames. For reliable verification, attach interactively and rely on what you see live.
 
 ### 4) Cleanup
 

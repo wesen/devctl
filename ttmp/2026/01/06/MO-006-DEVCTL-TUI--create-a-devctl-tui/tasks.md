@@ -18,6 +18,7 @@
 - [x] Implement logs viewer model: stdout/stderr tabs, follow toggle, scrollback cap
 - [x] Plumb log updates into the model (direct file tailing, or via Watermill messages if we want a single event path)
 - [x] Add log search/filter UI (substring search + highlight; clear search)
+- [x] Surface exit diagnostics (exit code/signal + stderr tail) for dead services (dashboard row + service view)
 
 ## Milestone 2 — Actions + pipeline UX
 
