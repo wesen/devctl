@@ -897,3 +897,46 @@ This step adds a dedicated Pipeline view (reachable via `tab`) and introduces a 
 ### Technical details
 - Run ids use `watermill.NewUUID()` so all messages for a run can be correlated (`run_id`).
 - Phase timing is measured in the action runner and sent as `duration_ms`, so the UI stays render-only.
+
+## Step 21: Make validation failures actionable in the Pipeline view
+
+After the Pipeline view landed, validation failures were still a little frustrating: you could see “failed (N errors)”, but you still had to jump to logs or re-run `devctl up` on the CLI to get the concrete error messages and their details. For many config mistakes, the `protocol.Error` payload already contains enough structure to be useful — we just weren’t rendering it in a way you can actually work with.
+
+This step upgrades the Pipeline view’s validation section into a small, navigable list: you can move a cursor through errors/warnings and toggle a details panel to inspect the structured `details` payload in-place. It’s intentionally simple (no fancy panes/viewport yet), but it’s already a big step toward a “fix → restart” loop that stays inside the TUI.
+
+**Commit (code):** a7c83e1 — "tui: make pipeline validation issues navigable"
+
+### What I did
+- Rendered validation errors/warnings as a single list with cursor selection (`↑/↓`).
+- Added an `enter` toggle to show/hide a details section for the selected issue.
+- Rendered `details` as pretty-printed JSON with a small line cap so the view stays readable.
+
+### Why
+- A validation summary is useful, but not sufficient; users need the specific error messages and context to fix problems quickly.
+- This keeps the TUI loop tight: see the failure, understand it, then restart from the dashboard.
+
+### What worked
+- Validation failures now show up as an interactive list in the Pipeline view, with structured details available immediately.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Even minimal “cursor + details” navigation dramatically improves the UX for structured data (validation issues) compared to dumping it as text.
+
+### What was tricky to build
+- Keeping the feature lightweight (no viewport) while still preventing the details section from exploding the screen; a small line cap is a good first guardrail.
+
+### What warrants a second pair of eyes
+- Whether we should split errors vs warnings into separate toggles (and/or add filtering) once the list grows beyond a handful of issues.
+
+### What should be done in the future
+- Add a viewport to the Pipeline view so large details payloads can be scrolled instead of truncated.
+- Improve attribution (“which plugin produced this error”) once the engine/runtime provides that context.
+
+### Code review instructions
+- Review `devctl/pkg/tui/models/pipeline_model.go` for cursor movement, list rendering, and JSON details formatting.
+- Validate with a fixture repo that produces a predictable validation failure, then press `tab` to reach the Pipeline view and use `↑/↓` + `enter`.
+
+### Technical details
+- The details renderer uses `json.MarshalIndent` and truncates to ~12 lines to keep the screen stable.

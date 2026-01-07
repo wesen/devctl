@@ -180,6 +180,14 @@ Add a Pipeline view to the TUI and publish structured “pipeline progress” ev
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/pipeline_model.go — Render pipeline progress and last-run summary
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/root_model.go — Add `pipeline` view and tab cycling
 
+## 2026-01-07
+
+Make pipeline validation issues navigable in the Pipeline view (cursor selection + details rendering) so validation failures are actionable without leaving the TUI (commit a7c83e1).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/pipeline_model.go — Render selectable validation issues and details
+
 ## 2026-01-06
 
 Finalize M0 baseline: fix doc hygiene (numeric prefix) and land initial TUI skeleton (commit 2e22243).
