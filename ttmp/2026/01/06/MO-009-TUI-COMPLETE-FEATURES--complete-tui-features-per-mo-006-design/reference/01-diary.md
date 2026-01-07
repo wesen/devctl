@@ -21,7 +21,7 @@ RelatedFiles:
       Note: Populate Source/Level when transforming domain events
 ExternalSources: []
 Summary: 'Implementation diary for MO-009: complete devctl TUI features'
-LastUpdated: 2026-01-07T02:43:04-05:00
+LastUpdated: 2026-01-07T02:49:20-05:00
 WhatFor: Track implementation steps, decisions, and validation for MO-009
 WhenToUse: When implementing or reviewing MO-009 changes
 ---
@@ -299,3 +299,55 @@ This change also removes the previous “scan for keywords” logic from the Eve
 
 ### Technical details
 - Implemented tasks: 4.1.1, 4.1.2, 4.2.1, 4.2.3 (and effectively 4.2.2 by using the existing `styles.LogLevelIcon()`).
+
+---
+
+## Step 5: Add Events view filters (source + level) with a small level menu
+
+Implemented Phase 4.3/4.4 by adding per-source and per-level filtering to the Events view, with a fixed “status bar” showing current filter state. This makes it practical to focus on a single service’s events or reduce noise to WARN/ERROR without leaving the Events view.
+
+The implementation uses simple, explicit keybindings: number keys toggle sources by index, space toggles the `system` source, and `l` opens a lightweight “level menu” where `d/i/w/e` toggle individual log levels.
+
+**Commit (code):** 4ecdb3e8af5bf2f8f0228e81a34b3902b2ad4c7b — "tui: add events source and level filters"
+
+### What I did
+- Added `serviceFilters`/`serviceOrder` and `levelFilters` state to `EventLogModel`.
+- Implemented keybindings:
+  - `1-9`: toggle source filters by index (alphabetical order)
+  - `space`: toggle the `system` source
+  - `l`: open/close level menu; in menu: `d/i/w/e` toggle levels, `a` all, `n` none, `esc` close
+- Rendered fixed filter bars above the viewport (inside the Events box).
+- Applied both source and level filters in `refreshViewportContent`.
+- Ran `gofmt -w pkg/tui/models/eventlog_model.go` and `go test ./... -count=1` from `devctl/`.
+
+### Why
+- Phase 4.3/4.4 are the natural follow-up after introducing structured `source`/`level` fields; they reduce noise and improve debuggability in real TUI sessions.
+
+### What worked
+- Filters update the viewport immediately without breaking scrolling or text filtering (`/`).
+
+### What didn't work
+- N/A
+
+### What I learned
+- Keeping filter bars outside the viewport avoids “losing” filter state when scrolling, at the cost of a couple rows of vertical space.
+
+### What was tricky to build
+- Resizing math: the viewport height needs to account for the box borders/title line plus the two fixed filter lines, and also the optional search line.
+
+### What warrants a second pair of eyes
+- The choice to sort sources alphabetically for stable `1-9` mapping; confirm this matches expected UX (vs. insertion order).
+
+### What should be done in the future
+- Add Phase 4.5 stats line and Phase 4.6 pause behavior (these fit naturally next to the filter bars).
+
+### Code review instructions
+- Review `devctl/pkg/tui/models/eventlog_model.go` focusing on:
+  - `Update()` keybinding handling (`levelMenu`, `searching`, viewport)
+  - `resizeViewport()` and `boxHeight()` calculations
+  - `refreshViewportContent()` filter application
+- Validate with `cd devctl && go test ./... -count=1`.
+- Manual check: run `cd devctl && go run ./cmd/devctl tui`, generate events, and confirm toggles change what’s displayed.
+
+### Technical details
+- Implemented tasks: 4.3.1–4.3.4, 4.4.1–4.4.3.

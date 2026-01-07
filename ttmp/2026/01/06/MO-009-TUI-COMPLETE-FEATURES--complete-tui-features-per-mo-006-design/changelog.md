@@ -15,3 +15,12 @@ Implement event source+level metadata and render [source] prefix (commit 060bd82
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/eventlog_model.go — Render log level icon + [source] prefix
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/transform.go — Assign Source/Level for domain events
 
+
+## 2026-01-06
+
+Add Events view source/level filters with status bars and level menu (commit 4ecdb3e)
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/eventlog_model.go — Service+level filter state
+

@@ -77,15 +77,15 @@
 - [x] 4.2.3 Update event rendering with level icon
 
 ### 4.3 Service Filter Toggles
-- [ ] 4.3.1 Add serviceFilters map to EventLogModel
-- [ ] 4.3.2 Add toggle keybindings (1-9 or space)
-- [ ] 4.3.3 Render filter status bar
-- [ ] 4.3.4 Apply filters in refreshViewportContent
+- [x] 4.3.1 Add serviceFilters map to EventLogModel
+- [x] 4.3.2 Add toggle keybindings (1-9 or space)
+- [x] 4.3.3 Render filter status bar
+- [x] 4.3.4 Apply filters in refreshViewportContent
 
 ### 4.4 Level Filter Toggles
-- [ ] 4.4.1 Add levelFilters map
-- [ ] 4.4.2 Add level toggle menu (l key)
-- [ ] 4.4.3 Apply level filters
+- [x] 4.4.1 Add levelFilters map
+- [x] 4.4.2 Add level toggle menu (l key)
+- [x] 4.4.3 Apply level filters
 
 ### 4.5 Stats Line
 - [ ] 4.5.1 Track event count and rate
