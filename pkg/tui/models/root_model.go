@@ -20,6 +20,7 @@ const (
 	ViewService   ViewID = "service"
 	ViewEvents    ViewID = "events"
 	ViewPipeline  ViewID = "pipeline"
+	ViewPlugins   ViewID = "plugins"
 )
 
 type RootModel struct {
@@ -33,6 +34,7 @@ type RootModel struct {
 	service   ServiceModel
 	events    EventLogModel
 	pipeline  PipelineModel
+	plugins   PluginModel
 
 	publishAction func(tui.ActionRequest) error
 
@@ -58,6 +60,7 @@ func NewRootModel(opts RootModelOptions) RootModel {
 		service:       NewServiceModel(),
 		events:        NewEventLogModel(),
 		pipeline:      NewPipelineModel(),
+		plugins:       NewPluginModel(),
 		publishAction: opts.PublishAction,
 	}
 	m = m.applyChildSizes()
@@ -98,6 +101,8 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.active = ViewEvents
 			case ViewEvents:
 				m.active = ViewPipeline
+			case ViewPipeline:
+				m.active = ViewPlugins
 			default:
 				m.active = ViewDashboard
 			}
@@ -125,10 +130,15 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmd tea.Cmd
 			m.pipeline, cmd = m.pipeline.Update(v)
 			return m, cmd
+		case ViewPlugins:
+			var cmd tea.Cmd
+			m.plugins, cmd = m.plugins.Update(v)
+			return m, cmd
 		}
 	case tui.StateSnapshotMsg:
 		m.dashboard = m.dashboard.WithSnapshot(v.Snapshot)
 		m.service = m.service.WithSnapshot(v.Snapshot)
+		m.plugins = m.plugins.WithPlugins(v.Snapshot.Plugins)
 		// Update system status for header
 		if v.Snapshot.Exists && v.Snapshot.State != nil {
 			m.startedAt = v.Snapshot.State.CreatedAt
@@ -198,9 +208,8 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.service.tickCmd()
 		}
 	case tui.NavigateBackMsg:
-		// Go back to dashboard from service view
+		// Go back to dashboard from service/plugin view
 		m.active = ViewDashboard
-		return m, nil
 		return m, nil
 	case tui.ActionRequestMsg:
 		if m.publishAction == nil {
@@ -243,6 +252,10 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ViewPipeline:
 		var cmd tea.Cmd
 		m.pipeline, cmd = m.pipeline.Update(msg)
+		return m, cmd
+	case ViewPlugins:
+		var cmd tea.Cmd
+		m.plugins, cmd = m.plugins.Update(msg)
 		return m, cmd
 	case ViewDashboard:
 		var cmd tea.Cmd
@@ -312,6 +325,8 @@ func (m RootModel) View() string {
 		content = m.events.View()
 	case ViewPipeline:
 		content = m.pipeline.View()
+	case ViewPlugins:
+		content = m.plugins.View()
 	default:
 		content = m.dashboard.View()
 	}
@@ -345,6 +360,9 @@ func (m RootModel) View() string {
 			"",
 			theme.KeybindKey.Render("Pipeline")+":",
 			"  "+theme.TitleMuted.Render("b build, p prepare, v validation, ↑/↓ select, enter details"),
+			"",
+			theme.KeybindKey.Render("Plugins")+":",
+			"  "+theme.TitleMuted.Render("↑/↓ select, enter expand, a expand all, A collapse all, esc back"),
 		)
 		helpSection = helpStyle.Render(helpContent)
 	}
@@ -409,6 +427,13 @@ func (m RootModel) footerKeybinds() []widgets.Keybind {
 			{Key: "v", Label: "validate"},
 			{Key: "↑/↓", Label: "select"},
 		}
+	case ViewPlugins:
+		return []widgets.Keybind{
+			{Key: "↑/↓", Label: "select"},
+			{Key: "enter", Label: "expand"},
+			{Key: "a/A", Label: "all"},
+			{Key: "esc", Label: "back"},
+		}
 	default:
 		return nil
 	}
@@ -435,5 +460,6 @@ func (m RootModel) applyChildSizes() RootModel {
 	m.service = m.service.WithSize(m.width, childHeight)
 	m.events = m.events.WithSize(m.width, childHeight)
 	m.pipeline = m.pipeline.WithSize(m.width, childHeight)
+	m.plugins = m.plugins.WithSize(m.width, childHeight)
 	return m
 }

@@ -571,6 +571,77 @@ Updated `renderStyledSteps()`:
 
 ---
 
+## Phase 6: Plugin List View
+
+**Date**: 2026-01-07 ~04:00
+
+### 6.1 PluginModel Implementation
+
+Created `pkg/tui/models/plugin_model.go`:
+
+**Data Structures**:
+- `PluginInfo` struct with `ID`, `Path`, `Status`, `Priority`, `Protocol`, `Ops`, `Streams`, `Commands`
+- `PluginModel` struct with `plugins []PluginInfo`, `selected int`, `expanded map[int]bool`
+
+**Methods**:
+- `NewPluginModel()` - Constructor
+- `WithSize(width, height int)` - Set dimensions
+- `WithPlugins([]tui.PluginSummary)` - Update from state snapshot
+- `Update(tea.Msg)` - Handle input events
+- `View()` - Render plugin list
+
+**Keybindings**:
+- `↑/↓` or `k/j` - Navigate between plugins
+- `enter` or `i` - Toggle expand/collapse for selected plugin
+- `a` - Expand all plugins
+- `A` - Collapse all plugins
+- `esc` - Navigate back to dashboard
+
+**View Features**:
+- Empty state with helpful message
+- Header with plugin count and keybinding hints
+- Compact view: Title line + path
+- Expanded view: Full details in a box including:
+  - Status with icon (Active/Disabled/Error)
+  - Priority
+  - Path
+  - Protocol
+  - Capabilities (Ops, Streams, Commands)
+
+### 6.2 RootModel Integration
+
+Updated `pkg/tui/models/root_model.go`:
+
+- Added `ViewPlugins` constant
+- Added `plugins PluginModel` field
+- Updated `NewRootModel()` to initialize plugins
+- Updated tab navigation: Dashboard → Events → Pipeline → Plugins → Dashboard
+- Updated `StateSnapshotMsg` handler to pass plugins to `PluginModel`
+- Updated `View()` to render plugins view
+- Updated `footerKeybinds()` with plugins keybindings
+- Updated `applyChildSizes()` to size plugins model
+- Updated help overlay with Plugins section
+
+### Files Created/Modified
+
+**Created**:
+- `pkg/tui/models/plugin_model.go` - Plugin list view
+
+**Modified**:
+- `pkg/tui/models/root_model.go` - Wired up plugin model
+
+### All Phase 6 Tasks Complete
+
+| Task | Description | Status |
+|------|-------------|--------|
+| 6.1.1 | Add ViewPlugins to view types | ✅ |
+| 6.1.2 | Create PluginModel struct | ✅ |
+| 6.1.3 | Implement Update() for navigation | ✅ |
+| 6.1.4 | Implement View() with expandable cards | ✅ |
+| 6.1.5 | Wire up to RootModel | ✅ |
+
+---
+
 ### Technical References
 
 - Original Design: `MO-006-DEVCTL-TUI/.../01-devctl-tui-layout.md`

@@ -937,7 +937,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
 
 ### Tasks
 
-- [ ] **6.1.1** Add ViewPlugin to view types
+- [x] **6.1.1** Add ViewPlugin to view types
   ```go
   const (
       ViewDashboard ViewID = "dashboard"
@@ -948,7 +948,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
   )
   ```
 
-- [ ] **6.1.2** Create PluginModel struct
+- [x] **6.1.2** Create PluginModel struct
   ```go
   type PluginModel struct {
       width   int
@@ -971,7 +971,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
   }
   ```
 
-- [ ] **6.1.3** Implement Update() for navigation
+- [x] **6.1.3** Implement Update() for navigation
   ```go
   case tea.KeyMsg:
       switch v.String() {
@@ -992,7 +992,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
       }
   ```
 
-- [ ] **6.1.4** Implement View() with expandable cards
+- [x] **6.1.4** Implement View() with expandable cards
   ```go
   func (m PluginModel) View() string {
       var sections []string
@@ -1004,7 +1004,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
   }
   ```
 
-- [ ] **6.1.5** Wire up to RootModel
+- [x] **6.1.5** Wire up to RootModel
   - Add `plugins PluginModel` field
   - Handle navigation to/from
   - Add footer keybindings
