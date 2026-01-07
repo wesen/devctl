@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"syscall"
 	"time"
@@ -26,6 +27,8 @@ type DashboardModel struct {
 	confirmAction bool
 	confirmReq    tui.ActionRequest
 	confirmText   string
+
+	exitSummary map[string]string
 }
 
 func NewDashboardModel() DashboardModel { return DashboardModel{} }
@@ -38,6 +41,36 @@ func (m DashboardModel) WithSize(width, height int) DashboardModel {
 func (m DashboardModel) WithSnapshot(s tui.StateSnapshot) DashboardModel {
 	m.last = &s
 	m.selected = clampInt(m.selected, 0, maxInt(0, len(m.serviceNames())-1))
+	m.exitSummary = map[string]string{}
+	if s.State != nil {
+		for _, svc := range s.State.Services {
+			alive := false
+			if s.Alive != nil {
+				alive = s.Alive[svc.Name]
+			}
+			if alive {
+				continue
+			}
+			if svc.ExitInfo == "" {
+				continue
+			}
+			if _, err := os.Stat(svc.ExitInfo); err != nil {
+				continue
+			}
+			ei, err := state.ReadExitInfo(svc.ExitInfo)
+			if err != nil {
+				continue
+			}
+			if ei.Signal != "" {
+				m.exitSummary[svc.Name] = "sig=" + ei.Signal
+				continue
+			}
+			if ei.ExitCode != nil {
+				m.exitSummary[svc.Name] = fmt.Sprintf("exit=%d", *ei.ExitCode)
+				continue
+			}
+		}
+	}
 	return m
 }
 
@@ -165,6 +198,11 @@ func (m DashboardModel) View() string {
 		status := "dead"
 		if a {
 			status = "alive"
+		}
+		if !a {
+			if extra, ok := m.exitSummary[svc.Name]; ok && extra != "" {
+				status = status + " (" + extra + ")"
+			}
 		}
 		cursor := " "
 		if i == m.selected {

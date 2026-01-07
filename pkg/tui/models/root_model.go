@@ -50,9 +50,7 @@ func NewRootModel(opts RootModelOptions) RootModel {
 		events:        NewEventLogModel(),
 		publishAction: opts.PublishAction,
 	}
-	m.dashboard = m.dashboard.WithSize(defaultWidth, defaultHeight)
-	m.service = m.service.WithSize(defaultWidth, defaultHeight)
-	m.events = m.events.WithSize(defaultWidth, defaultHeight)
+	m = m.applyChildSizes()
 	return m
 }
 
@@ -70,9 +68,7 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.width, m.height = w, h
-		m.dashboard = m.dashboard.WithSize(w, h)
-		m.service = m.service.WithSize(w, h)
-		m.events = m.events.WithSize(w, h)
+		m = m.applyChildSizes()
 		return m, nil
 	case tea.KeyMsg:
 		switch v.String() {
@@ -124,9 +120,11 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				strings.HasPrefix(s, "action publish failed:") ||
 				strings.HasPrefix(s, "failed SIGTERM") {
 				m.statusLine = s
+				m = m.applyChildSizes()
 			} else if strings.HasPrefix(s, "action ok:") ||
 				strings.HasPrefix(s, "sent SIGTERM") {
 				m.statusLine = s
+				m = m.applyChildSizes()
 			}
 		}
 		return m, nil
@@ -193,4 +191,25 @@ func (m RootModel) View() string {
 		b.WriteString("events: / filter, ctrl+l clear filter, c clear events\n")
 	}
 	return b.String()
+}
+
+func (m RootModel) headerLines() int {
+	// Title line + blank line.
+	lines := 2
+	if m.statusLine != "" {
+		// Status line + blank line.
+		lines += 2
+	}
+	return lines
+}
+
+func (m RootModel) applyChildSizes() RootModel {
+	childHeight := m.height - m.headerLines()
+	if childHeight < 0 {
+		childHeight = 0
+	}
+	m.dashboard = m.dashboard.WithSize(m.width, childHeight)
+	m.service = m.service.WithSize(m.width, childHeight)
+	m.events = m.events.WithSize(m.width, childHeight)
+	return m
 }

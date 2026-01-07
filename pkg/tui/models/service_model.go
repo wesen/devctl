@@ -48,6 +48,9 @@ type ServiceModel struct {
 	search    textinput.Model
 	filter    string
 
+	exitInfo    *state.ExitInfo
+	exitInfoErr string
+
 	tailLines int
 	maxLines  int
 	tickEvery time.Duration
@@ -85,6 +88,7 @@ func (m ServiceModel) WithSize(width, height int) ServiceModel {
 func (m ServiceModel) WithSnapshot(s tui.StateSnapshot) ServiceModel {
 	m.last = &s
 	m = m.syncPathsFromSnapshot()
+	m = m.syncExitInfoFromSnapshot()
 	return m
 }
 
@@ -98,7 +102,10 @@ func (m ServiceModel) WithService(name string) ServiceModel {
 	m.search.Blur()
 	m.stdout = logStreamState{}
 	m.stderr = logStreamState{}
+	m.exitInfo = nil
+	m.exitInfoErr = ""
 	m = m.syncPathsFromSnapshot()
+	m = m.syncExitInfoFromSnapshot()
 	m = m.loadInitialTail()
 	return m
 }
@@ -206,7 +213,7 @@ func (m ServiceModel) View() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("Service: %s  (%s)  pid=%d  %s  follow=%s%s\n", m.name, status, rec.PID, streamLabel, followLabel, filterLabel))
+	b.WriteString(fmt.Sprintf("Service: %s  (%s)  supervisor_pid=%d  %s  follow=%s%s\n", m.name, status, rec.PID, streamLabel, followLabel, filterLabel))
 	b.WriteString("tab switch stream, f follow, / filter, ctrl+l clear, esc back\n")
 	b.WriteString("\n")
 
@@ -214,6 +221,10 @@ func (m ServiceModel) View() string {
 		b.WriteString(fmt.Sprintf("Path: %s\n\n", m.activeState().path))
 	} else {
 		b.WriteString("Path: (unknown)\n\n")
+	}
+
+	if !alive {
+		m.renderExitInfo(&b)
 	}
 
 	if errText := m.activeState().lastErr; errText != "" {
@@ -237,7 +248,7 @@ func (m ServiceModel) tickCmd() tea.Cmd {
 }
 
 func (m ServiceModel) resizeViewport() ServiceModel {
-	usableHeight := m.height - 6
+	usableHeight := m.height - m.reservedViewportLines()
 	if usableHeight < 3 {
 		usableHeight = 3
 	}
@@ -246,6 +257,66 @@ func (m ServiceModel) resizeViewport() ServiceModel {
 	m.vp.HighPerformanceRendering = false
 	m = m.refreshViewportContent(false)
 	return m
+}
+
+func (m ServiceModel) reservedViewportLines() int {
+	// Try to keep the "header" portion pinned on-screen, even when the log viewport
+	// contains many lines.
+	lines := 0
+
+	// Header + key help.
+	lines += 2
+	// Blank + path line + blank.
+	lines += 3
+
+	if m.name != "" {
+		_, alive, found := m.lookupService()
+		if found && !alive {
+			lines += m.exitInfoLines()
+		}
+	}
+
+	if errText := m.activeState().lastErr; errText != "" {
+		// "log error: ..." + blank
+		lines += 2
+	}
+
+	if m.searching {
+		// 1 line input + 2 blank lines
+		lines += 3
+	}
+
+	// Small cushion for wrapping.
+	lines += 1
+
+	return lines
+}
+
+func (m ServiceModel) exitInfoLines() int {
+	// Minimum: "Exit: ..." + blank line.
+	if m.exitInfo == nil {
+		return 2
+	}
+
+	lines := 0
+	// Exit, ExitedAt, optional Error.
+	lines += 2
+	if m.exitInfo.Error != "" {
+		lines += 1
+	}
+
+	tail := m.exitInfo.StderrTail
+	if len(tail) > 8 {
+		tail = tail[len(tail)-8:]
+	}
+	if len(tail) > 0 {
+		// blank + "Last stderr:" + tail lines
+		lines += 2 + len(tail)
+	}
+
+	// trailing blank line
+	lines += 1
+	return lines
 }
 
 func (m ServiceModel) activeState() *logStreamState {
@@ -280,6 +351,76 @@ func (m ServiceModel) syncPathsFromSnapshot() ServiceModel {
 	m.stdout.path = rec.StdoutLog
 	m.stderr.path = rec.StderrLog
 	return m
+}
+
+func (m ServiceModel) syncExitInfoFromSnapshot() ServiceModel {
+	rec, alive, found := m.lookupService()
+	if !found || rec == nil {
+		m.exitInfo = nil
+		m.exitInfoErr = ""
+		return m
+	}
+	if alive {
+		m.exitInfo = nil
+		m.exitInfoErr = ""
+		return m
+	}
+
+	m.exitInfo = nil
+	m.exitInfoErr = ""
+	if rec.ExitInfo == "" {
+		m.exitInfoErr = "no exit info recorded"
+		return m
+	}
+
+	ei, err := state.ReadExitInfo(rec.ExitInfo)
+	if err != nil {
+		m.exitInfoErr = err.Error()
+		return m
+	}
+	m.exitInfo = ei
+	return m
+}
+
+func (m ServiceModel) renderExitInfo(b *strings.Builder) {
+	if m.exitInfo == nil {
+		if m.exitInfoErr != "" {
+			b.WriteString(fmt.Sprintf("Exit: %s\n\n", m.exitInfoErr))
+		} else {
+			b.WriteString("Exit: (unknown)\n\n")
+		}
+		return
+	}
+
+	ei := m.exitInfo
+	exitKind := "unknown"
+	if ei.Signal != "" {
+		exitKind = "signal " + ei.Signal
+	} else if ei.ExitCode != nil {
+		exitKind = fmt.Sprintf("exit_code=%d", *ei.ExitCode)
+	}
+
+	b.WriteString(fmt.Sprintf("Exit: %s  service_pid=%d\n", exitKind, ei.PID))
+	if ei.ExitedAt.IsZero() {
+		b.WriteString("ExitedAt: (unknown)\n")
+	} else {
+		b.WriteString(fmt.Sprintf("ExitedAt: %s\n", ei.ExitedAt.Format("2006-01-02 15:04:05")))
+	}
+	if ei.Error != "" {
+		b.WriteString(fmt.Sprintf("Error: %s\n", ei.Error))
+	}
+
+	lines := ei.StderrTail
+	if len(lines) > 8 {
+		lines = lines[len(lines)-8:]
+	}
+	if len(lines) > 0 {
+		b.WriteString("\nLast stderr:\n")
+		for _, line := range lines {
+			b.WriteString(fmt.Sprintf("! %s\n", line))
+		}
+	}
+	b.WriteString("\n")
 }
 
 func (m ServiceModel) loadInitialTail() ServiceModel {
