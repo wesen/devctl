@@ -396,7 +396,56 @@ The `reservedViewportLines()` method in ServiceModel is based on OLD plain-text 
 - Total can easily exceed `m.height` passed from RootModel
 
 ### What should be done next
-1. Refactor `reservedViewportLines()` to match actual box heights
-2. Consider fixed-height sections with internal scrolling
-3. Add string truncation helpers for long content
-4. Pad lines to full width to prevent stray characters
+1. ~~Refactor `reservedViewportLines()` to match actual box heights~~ ✅ Done
+2. ~~Consider fixed-height sections with internal scrolling~~ ✅ Done
+3. ~~Add string truncation helpers for long content~~ ✅ Done
+4. ~~Pad lines to full width to prevent stray characters~~ ✅ Done
+
+## Step 7: Fix visual issues found during testing
+
+Fixed all critical and high-priority issues from `02-visual-issues-found-during-testing.md`.
+
+### What I did
+1. **ServiceModel height overflow** (Critical):
+   - Redesigned ServiceModel.View() with fixed-height sections
+   - infoBox: 6 lines (compact single-line status + path)
+   - exitInfoBox: 6 lines (compact with 2 stderr lines max)
+   - logBox: gets remaining space
+   - Added `recalculateViewportHeight()` called from `syncExitInfoFromSnapshot()`
+   - Aggressive truncation of long paths and stderr lines
+
+2. **Stray border characters** (High):
+   - Fixed header and footer widgets to generate separator with exact width
+   - Previously used a fixed long string + truncation which didn't work for styled strings
+   - Now generates `sepWidth` runes of '━' character
+   - Added full-width padding to footer keybinds line
+
+3. **String truncation** (Medium):
+   - Added truncation for paths: `"..." + tail` if too long
+   - Added truncation for stderr lines with `...` suffix
+   - Added truncation for error messages in exit info
+
+4. **PID truncation** (Low):
+   - Removed "PID " prefix from table cell (header already says "PID")
+   - Increased PID column width from 10 to 12
+   - Increased Status column width from 16 to 18
+
+### Technical changes
+- `service_model.go`: New `exitInfoHeight()`, `renderCompactExitInfo()`, `recalculateViewportHeight()`
+- `header.go`: Fixed separator generation using rune slice
+- `footer.go`: Fixed separator generation using rune slice, added Width to keybinds line
+- `dashboard_model.go`: Adjusted column widths
+
+### Testing
+Verified all views at 80x24:
+- Dashboard: ✓ header visible, no stray chars, PIDs not truncated
+- Service (alive): ✓ header visible, compact info, log viewport fills space
+- Service (dead): ✓ header visible, compact exit info, log viewport visible
+- Events: ✓ header visible, no stray chars
+- Pipeline: ✓ header visible, no stray chars
+
+### What I learned
+- lipgloss Width() sets minimum width, not maximum - it doesn't truncate content
+- String slicing on styled strings doesn't work because escape codes add bytes
+- Need to calculate visual width separately from byte length
+- Viewport height must be recalculated when content structure changes (alive→dead)

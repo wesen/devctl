@@ -206,9 +206,32 @@ func (m ServiceModel) View() string {
 		return box.Render()
 	}
 
+	// Calculate fixed section heights first
+	const infoBoxHeight = 6  // Compact info: status + stream + follow + border
+	const logBoxBorder = 3   // Top border + title + bottom border
+	exitBoxHeight := 0
+	if !alive {
+		exitBoxHeight = m.exitInfoHeight()
+	}
+	errBoxHeight := 0
+	if errText := m.activeState().lastErr; errText != "" {
+		errBoxHeight = 3 // border + content + border
+	}
+	searchHeight := 0
+	if m.searching {
+		searchHeight = 1
+	}
+
+	// Log viewport gets remaining space
+	usedHeight := infoBoxHeight + exitBoxHeight + errBoxHeight + searchHeight + logBoxBorder
+	logViewportHeight := m.height - usedHeight
+	if logViewportHeight < 3 {
+		logViewportHeight = 3
+	}
+
 	var sections []string
 
-	// Process info box
+	// Compact process info box
 	statusIcon := styles.StatusIcon(alive)
 	statusText := "Running"
 	statusStyle := theme.StatusRunning
@@ -217,82 +240,78 @@ func (m ServiceModel) View() string {
 		statusStyle = theme.StatusDead
 	}
 
-	// Build process info content
-	var infoLines []string
-	infoLines = append(infoLines, lipgloss.JoinHorizontal(lipgloss.Center,
-		statusStyle.Render(statusIcon),
-		" ",
-		theme.Title.Render(statusText),
-		"  ",
-		theme.TitleMuted.Render(fmt.Sprintf("PID %d", rec.PID)),
-	))
-
-	// Stream selector with tabs
-	stdoutTab := theme.TitleMuted.Render("stdout")
-	stderrTab := theme.TitleMuted.Render("stderr")
+	// Build compact info line
+	stdoutTab := "stdout"
+	stderrTab := "stderr"
 	if m.active == LogStdout {
-		stdoutTab = theme.KeybindKey.Render("[stdout]")
+		stdoutTab = "[stdout]"
 	} else {
-		stderrTab = theme.KeybindKey.Render("[stderr]")
+		stderrTab = "[stderr]"
 	}
-	streamLine := lipgloss.JoinHorizontal(lipgloss.Center,
-		theme.TitleMuted.Render("Stream: "),
-		stdoutTab,
-		" ",
-		stderrTab,
-	)
 
-	// Follow indicator
-	followIcon := styles.IconPending
-	followStyle := theme.TitleMuted
+	followText := "off"
 	if m.follow {
-		followIcon = styles.IconRunning
-		followStyle = theme.StatusRunning
-	}
-	followLine := lipgloss.JoinHorizontal(lipgloss.Center,
-		followStyle.Render(followIcon),
-		" ",
-		theme.TitleMuted.Render("Follow: "),
-		followStyle.Render(fmt.Sprintf("%v", m.follow)),
-	)
-
-	infoLines = append(infoLines, "")
-	infoLines = append(infoLines, streamLine)
-	infoLines = append(infoLines, followLine)
-
-	// Filter info if active
-	if m.filter != "" {
-		infoLines = append(infoLines, theme.TitleMuted.Render(fmt.Sprintf("Filter: %q", m.filter)))
+		followText = "on"
 	}
 
-	// Log path
+	// Truncate path if too long
 	path := m.activeState().path
 	if path == "" {
 		path = "(unknown)"
 	}
-	infoLines = append(infoLines, "", theme.TitleMuted.Render("Path: "+path))
+	maxPathLen := m.width - 10
+	if maxPathLen > 0 && len(path) > maxPathLen {
+		path = "..." + path[len(path)-maxPathLen+3:]
+	}
+
+	infoContent := lipgloss.JoinVertical(lipgloss.Left,
+		lipgloss.JoinHorizontal(lipgloss.Center,
+			statusStyle.Render(statusIcon),
+			" ",
+			theme.Title.Render(statusText),
+			"  ",
+			theme.TitleMuted.Render(fmt.Sprintf("PID %d", rec.PID)),
+			"    ",
+			theme.TitleMuted.Render(stdoutTab),
+			"/",
+			theme.TitleMuted.Render(stderrTab),
+			"  ",
+			theme.TitleMuted.Render("follow:"+followText),
+		),
+		theme.TitleMuted.Render(path),
+	)
+
+	if m.filter != "" {
+		infoContent = lipgloss.JoinVertical(lipgloss.Left,
+			infoContent,
+			theme.TitleMuted.Render(fmt.Sprintf("filter: %q", m.filter)),
+		)
+	}
 
 	infoBox := widgets.NewBox("Service: "+m.name).
 		WithTitleRight("[esc] back").
-		WithContent(lipgloss.JoinVertical(lipgloss.Left, infoLines...)).
-		WithSize(m.width, len(infoLines)+3)
+		WithContent(infoContent).
+		WithSize(m.width, infoBoxHeight)
 
 	sections = append(sections, infoBox.Render())
 
-	// Exit info for dead services
-	if !alive {
-		exitContent := m.renderStyledExitInfo(theme)
-		if exitContent != "" {
-			sections = append(sections, exitContent)
-		}
+	// Exit info for dead services (compact)
+	if !alive && exitBoxHeight > 0 {
+		exitContent := m.renderCompactExitInfo(theme, exitBoxHeight-2) // -2 for border
+		sections = append(sections, exitContent)
 	}
 
 	// Log error if present
 	if errText := m.activeState().lastErr; errText != "" {
+		// Truncate error text
+		if len(errText) > m.width-10 {
+			errText = errText[:m.width-13] + "..."
+		}
 		errBox := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(theme.Error).
 			Padding(0, 1).
+			Width(m.width - 4).
 			Render(lipgloss.JoinHorizontal(lipgloss.Center,
 				theme.StatusDead.Render(styles.IconError),
 				" ",
@@ -306,16 +325,107 @@ func (m ServiceModel) View() string {
 		sections = append(sections, m.search.View())
 	}
 
-	// Log viewport in a box
+	// Log viewport in a box - uses remaining height
 	logTitle := fmt.Sprintf("Logs (%s)", m.active)
 	logBox := widgets.NewBox(logTitle).
 		WithTitleRight("[↑/↓] scroll  [f] follow  [/] filter").
 		WithContent(m.vp.View()).
-		WithSize(m.width, m.vp.Height+3)
+		WithSize(m.width, logViewportHeight)
 
 	sections = append(sections, logBox.Render())
 
 	return lipgloss.JoinVertical(lipgloss.Left, sections...)
+}
+
+func (m ServiceModel) exitInfoHeight() int {
+	// Fixed compact height to ensure header stays visible
+	// Exit line + stderr header + 2 stderr lines = 4 content lines + 2 border = 6
+	return 6
+}
+
+func (m ServiceModel) renderCompactExitInfo(theme styles.Theme, maxLines int) string {
+	if m.exitInfo == nil {
+		msg := "unknown"
+		if m.exitInfoErr != "" {
+			msg = m.exitInfoErr
+		}
+		return lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(theme.Warning).
+			Padding(0, 1).
+			Width(m.width - 4).
+			Render(lipgloss.JoinHorizontal(lipgloss.Center,
+				theme.StatusDead.Render(styles.IconError),
+				" ",
+				theme.Title.Render("Exit: "),
+				theme.TitleMuted.Render(msg),
+			))
+	}
+
+	ei := m.exitInfo
+	var lines []string
+
+	// Exit status line with more info condensed
+	exitKind := "unknown"
+	exitIcon := styles.IconError
+	if ei.Signal != "" {
+		exitKind = "signal " + ei.Signal
+		exitIcon = styles.IconWarning
+	} else if ei.ExitCode != nil {
+		exitKind = fmt.Sprintf("code=%d", *ei.ExitCode)
+		if *ei.ExitCode == 0 {
+			exitIcon = styles.IconSuccess
+		}
+	}
+
+	exitedAt := ""
+	if !ei.ExitedAt.IsZero() {
+		exitedAt = " @ " + ei.ExitedAt.Format("15:04:05")
+	}
+
+	errSuffix := ""
+	if ei.Error != "" {
+		errSuffix = "  err: " + ei.Error
+		if len(errSuffix) > 30 {
+			errSuffix = errSuffix[:27] + "..."
+		}
+	}
+
+	lines = append(lines, lipgloss.JoinHorizontal(lipgloss.Center,
+		theme.StatusDead.Render(exitIcon),
+		" ",
+		theme.Title.Render("Exit: "),
+		theme.TitleMuted.Render(exitKind),
+		theme.TitleMuted.Render(exitedAt),
+		theme.StatusDead.Render(errSuffix),
+	))
+
+	// Stderr tail - show just 2 lines max, strictly truncated to prevent wrapping
+	stderrLines := ei.StderrTail
+	maxStderr := 2
+	if len(stderrLines) > maxStderr {
+		stderrLines = stderrLines[len(stderrLines)-maxStderr:]
+	}
+	if len(stderrLines) > 0 {
+		lines = append(lines, theme.TitleMuted.Render("stderr:"))
+		maxLineLen := m.width - 14 // Account for box border, padding, "! " prefix
+		if maxLineLen < 20 {
+			maxLineLen = 20
+		}
+		for _, line := range stderrLines {
+			if len(line) > maxLineLen {
+				line = line[:maxLineLen-3] + "..."
+			}
+			lines = append(lines, theme.StatusDead.Render("! "+line))
+		}
+	}
+
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(theme.Error).
+		Padding(0, 1).
+		Width(m.width - 4).
+		Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
 }
 
 func (m ServiceModel) tickCmd() tea.Cmd {
@@ -326,75 +436,43 @@ func (m ServiceModel) tickCmd() tea.Cmd {
 }
 
 func (m ServiceModel) resizeViewport() ServiceModel {
-	usableHeight := m.height - m.reservedViewportLines()
-	if usableHeight < 3 {
-		usableHeight = 3
+	// Calculate viewport height based on available space
+	// Reserve space for: info box, optional exit box, optional error box, log box borders
+	const infoBoxHeight = 6
+	const logBoxBorder = 3
+
+	_, alive, found := m.lookupService()
+	exitBoxHeight := 0
+	if found && !alive {
+		exitBoxHeight = m.exitInfoHeight()
 	}
-	m.vp.Width = maxInt(0, m.width)
-	m.vp.Height = usableHeight
+
+	errBoxHeight := 0
+	if errText := m.activeState().lastErr; errText != "" {
+		errBoxHeight = 3
+	}
+
+	searchHeight := 0
+	if m.searching {
+		searchHeight = 1
+	}
+
+	reservedHeight := infoBoxHeight + exitBoxHeight + errBoxHeight + searchHeight + logBoxBorder
+	vpHeight := m.height - reservedHeight
+	if vpHeight < 3 {
+		vpHeight = 3
+	}
+
+	m.vp.Width = maxInt(0, m.width-4) // Account for box borders
+	m.vp.Height = vpHeight
 	m.vp.HighPerformanceRendering = false
 	m = m.refreshViewportContent(false)
 	return m
 }
 
-func (m ServiceModel) reservedViewportLines() int {
-	// Try to keep the "header" portion pinned on-screen, even when the log viewport
-	// contains many lines.
-	lines := 0
-
-	// Header + key help.
-	lines += 2
-	// Blank + path line + blank.
-	lines += 3
-
-	if m.name != "" {
-		_, alive, found := m.lookupService()
-		if found && !alive {
-			lines += m.exitInfoLines()
-		}
-	}
-
-	if errText := m.activeState().lastErr; errText != "" {
-		// "log error: ..." + blank
-		lines += 2
-	}
-
-	if m.searching {
-		// 1 line input + 2 blank lines
-		lines += 3
-	}
-
-	// Small cushion for wrapping.
-	lines += 1
-
-	return lines
-}
-
-func (m ServiceModel) exitInfoLines() int {
-	// Minimum: "Exit: ..." + blank line.
-	if m.exitInfo == nil {
-		return 2
-	}
-
-	lines := 0
-	// Exit, ExitedAt, optional Error.
-	lines += 2
-	if m.exitInfo.Error != "" {
-		lines += 1
-	}
-
-	tail := m.exitInfo.StderrTail
-	if len(tail) > 8 {
-		tail = tail[len(tail)-8:]
-	}
-	if len(tail) > 0 {
-		// blank + "Last stderr:" + tail lines
-		lines += 2 + len(tail)
-	}
-
-	// trailing blank line
-	lines += 1
-	return lines
+// recalculateViewportHeight recalculates viewport height after state changes
+func (m ServiceModel) recalculateViewportHeight() ServiceModel {
+	return m.resizeViewport()
 }
 
 func (m ServiceModel) activeState() *logStreamState {
@@ -436,28 +514,28 @@ func (m ServiceModel) syncExitInfoFromSnapshot() ServiceModel {
 	if !found || rec == nil {
 		m.exitInfo = nil
 		m.exitInfoErr = ""
-		return m
+		return m.recalculateViewportHeight()
 	}
 	if alive {
 		m.exitInfo = nil
 		m.exitInfoErr = ""
-		return m
+		return m.recalculateViewportHeight()
 	}
 
 	m.exitInfo = nil
 	m.exitInfoErr = ""
 	if rec.ExitInfo == "" {
 		m.exitInfoErr = "no exit info recorded"
-		return m
+		return m.recalculateViewportHeight()
 	}
 
 	ei, err := state.ReadExitInfo(rec.ExitInfo)
 	if err != nil {
 		m.exitInfoErr = err.Error()
-		return m
+		return m.recalculateViewportHeight()
 	}
 	m.exitInfo = ei
-	return m
+	return m.recalculateViewportHeight()
 }
 
 func (m ServiceModel) renderStyledExitInfo(theme styles.Theme) string {

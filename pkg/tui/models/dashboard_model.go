@@ -206,7 +206,7 @@ func (m DashboardModel) View() string {
 			}
 		}
 
-		pidText := fmt.Sprintf("PID %d", svc.PID)
+		pidText := fmt.Sprintf("%d", svc.PID)
 
 		rows[i] = widgets.TableRow{
 			Icon:     icon,
@@ -217,8 +217,8 @@ func (m DashboardModel) View() string {
 
 	serviceColumns := []widgets.TableColumn{
 		{Header: "Name", Width: 18},
-		{Header: "Status", Width: 16},
-		{Header: "PID", Width: 10},
+		{Header: "Status", Width: 18},
+		{Header: "PID", Width: 12},
 	}
 
 	table := widgets.NewTable(serviceColumns).

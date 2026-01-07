@@ -129,13 +129,20 @@ func (h Header) Render() string {
 	spacer := lipgloss.NewStyle().Width(spacing).Render("")
 	headerLine := lipgloss.JoinHorizontal(lipgloss.Top, leftParts, spacer, rightParts)
 
-	// Add separator line
+	// Add separator line - generate exactly the right number of box-drawing chars
+	sepWidth := h.Width
+	if sepWidth <= 0 {
+		sepWidth = 80
+	}
+	sepChars := make([]rune, sepWidth)
+	for i := range sepChars {
+		sepChars[i] = '━'
+	}
 	separator := lipgloss.NewStyle().
 		Foreground(theme.Muted).
-		Width(h.Width).
-		Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+		Render(string(sepChars))
 
-	return lipgloss.JoinVertical(lipgloss.Left, headerLine, separator[:min(h.Width, len(separator))])
+	return lipgloss.JoinVertical(lipgloss.Left, headerLine, separator)
 }
 
 // RenderKeybinds renders a list of keybindings.

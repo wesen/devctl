@@ -344,7 +344,19 @@ func (m RootModel) View() string {
 
 	sections = append(sections, footer.Render())
 
-	return lipgloss.JoinVertical(lipgloss.Left, sections...)
+	// Join and ensure full width to prevent stray characters from previous renders
+	output := lipgloss.JoinVertical(lipgloss.Left, sections...)
+
+	// Pad each line to full width to clear any leftover characters
+	lines := strings.Split(output, "\n")
+	for i, line := range lines {
+		lineWidth := lipgloss.Width(line)
+		if lineWidth < m.width {
+			lines[i] = line + strings.Repeat(" ", m.width-lineWidth)
+		}
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 func (m RootModel) footerKeybinds() []widgets.Keybind {
