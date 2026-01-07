@@ -94,10 +94,8 @@ func run(ctx context.Context, cmd *cobra.Command, opts options) error {
 	}
 	defer func() { _ = m.Close(ctx) }()
 
-	bw := bufio.NewWriter(cmd.OutOrStdout())
-	defer func() { _ = bw.Flush() }()
-
-	enc := json.NewEncoder(bw)
+	out := cmd.OutOrStdout()
+	enc := json.NewEncoder(out)
 	enc.SetEscapeHTML(false)
 
 	br := bufio.NewReader(r)
@@ -127,7 +125,7 @@ func run(ctx context.Context, cmd *cobra.Command, opts options) error {
 				if err != nil {
 					return err
 				}
-				if _, err := bw.Write(append(b, '\n')); err != nil {
+				if _, err := out.Write(append(b, '\n')); err != nil {
 					return err
 				}
 			default:
