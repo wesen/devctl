@@ -3,6 +3,8 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/go-go-golems/devctl/pkg/state"
 	"github.com/pkg/errors"
@@ -10,7 +12,9 @@ import (
 )
 
 func newStatusCmd() *cobra.Command {
-	return &cobra.Command{
+	var tailLines int
+
+	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show status of supervised services",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -24,20 +28,57 @@ func newStatusCmd() *cobra.Command {
 			}
 
 			type svc struct {
-				Name   string `json:"name"`
-				PID    int    `json:"pid"`
-				Alive  bool   `json:"alive"`
-				Stdout string `json:"stdout_log"`
-				Stderr string `json:"stderr_log"`
+				Name   string          `json:"name"`
+				PID    int             `json:"pid"`
+				Alive  bool            `json:"alive"`
+				Stdout string          `json:"stdout_log"`
+				Stderr string          `json:"stderr_log"`
+				Exit   *state.ExitInfo `json:"exit,omitempty"`
 			}
 			var services []svc
 			for _, s := range st.Services {
+				alive := state.ProcessAlive(s.PID)
+				var exitInfo *state.ExitInfo
+				if !alive && s.ExitInfo != "" {
+					if _, err := os.Stat(s.ExitInfo); err == nil {
+						ei, err := state.ReadExitInfo(s.ExitInfo)
+						if err == nil {
+							exitInfo = ei
+							if tailLines > 0 && len(exitInfo.StderrTail) > tailLines {
+								exitInfo.StderrTail = append([]string{}, exitInfo.StderrTail[len(exitInfo.StderrTail)-tailLines:]...)
+							}
+							if tailLines > 0 && len(exitInfo.StdoutTail) > tailLines {
+								exitInfo.StdoutTail = append([]string{}, exitInfo.StdoutTail[len(exitInfo.StdoutTail)-tailLines:]...)
+							}
+							if exitInfo.StderrTail == nil && tailLines > 0 {
+								if lines, err := state.TailLines(s.StderrLog, tailLines, 2<<20); err == nil {
+									exitInfo.StderrTail = lines
+								}
+							}
+						}
+					}
+				}
+				if !alive && exitInfo == nil && tailLines > 0 {
+					lines, err := state.TailLines(s.StderrLog, tailLines, 2<<20)
+					if err == nil {
+						exitInfo = &state.ExitInfo{
+							Service:    s.Name,
+							PID:        s.PID,
+							StartedAt:  st.CreatedAt,
+							ExitedAt:   time.Now(),
+							Error:      "exit info unavailable (older state); stderr tail captured at status time",
+							StderrTail: lines,
+						}
+					}
+				}
+
 				services = append(services, svc{
 					Name:   s.Name,
 					PID:    s.PID,
-					Alive:  state.ProcessAlive(s.PID),
+					Alive:  alive,
 					Stdout: s.StdoutLog,
 					Stderr: s.StderrLog,
+					Exit:   exitInfo,
 				})
 			}
 
@@ -49,4 +90,7 @@ func newStatusCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().IntVar(&tailLines, "tail-lines", 25, "How many stderr lines to include for dead services")
+	return cmd
 }

@@ -109,7 +109,8 @@ func runDown(ctx context.Context, opts RootOptions) error {
 	if err != nil {
 		return err
 	}
-	sup := supervise.New(supervise.Options{RepoRoot: opts.RepoRoot, ShutdownTimeout: opts.Timeout})
+	wrapperExe, _ := os.Executable()
+	sup := supervise.New(supervise.Options{RepoRoot: opts.RepoRoot, ShutdownTimeout: opts.Timeout, WrapperExe: wrapperExe})
 
 	stopCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
@@ -224,7 +225,8 @@ func runUp(ctx context.Context, opts RootOptions) error {
 		return nil
 	}
 
-	sup := supervise.New(supervise.Options{RepoRoot: opts.RepoRoot, ReadyTimeout: opts.Timeout})
+	wrapperExe, _ := os.Executable()
+	sup := supervise.New(supervise.Options{RepoRoot: opts.RepoRoot, ReadyTimeout: opts.Timeout, WrapperExe: wrapperExe})
 	st, err := sup.Start(ctx, plan)
 	if err != nil {
 		return err

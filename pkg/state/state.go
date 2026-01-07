@@ -1,8 +1,10 @@
 package state
 
 import (
+	"bytes"
 	"encoding/json"
 	stderrors "errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -31,6 +33,7 @@ type ServiceRecord struct {
 	Env       map[string]string `json:"env,omitempty"`
 	StdoutLog string            `json:"stdout_log"`
 	StderrLog string            `json:"stderr_log"`
+	ExitInfo  string            `json:"exit_info,omitempty"`
 }
 
 func StatePath(repoRoot string) string {
@@ -87,6 +90,9 @@ func ProcessAlive(pid int) bool {
 	if pid <= 0 {
 		return false
 	}
+	if isZombie(pid) {
+		return false
+	}
 	err := syscall.Kill(pid, 0)
 	if err == nil {
 		return true
@@ -95,4 +101,24 @@ func ProcessAlive(pid int) bool {
 		return true
 	}
 	return false
+}
+
+func isZombie(pid int) bool {
+	path := fmt.Sprintf("/proc/%d/stat", pid)
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return false
+	}
+	// Format: pid (comm) state ...
+	// We want the state character after the closing ')'.
+	i := bytes.LastIndexByte(b, ')')
+	if i < 0 {
+		return false
+	}
+	rest := bytes.TrimSpace(b[i+1:])
+	fields := bytes.Fields(rest)
+	if len(fields) < 1 || len(fields[0]) < 1 {
+		return false
+	}
+	return fields[0][0] == 'Z'
 }
