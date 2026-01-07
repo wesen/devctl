@@ -11,17 +11,23 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: devctl/cmd/devctl/cmds/logs.go
+    - Path: cmd/devctl/cmds/dynamic_commands.go
+      Note: Dynamic discovery behavior and __wrap-service skip
+    - Path: cmd/devctl/cmds/logs.go
       Note: Follow/cancel behavior (fixture follow tested via timeout)
-    - Path: devctl/cmd/devctl/cmds/smoketest.go
+    - Path: cmd/devctl/cmds/smoketest.go
       Note: Primary protocol v2 smoke test
-    - Path: devctl/cmd/devctl/cmds/smoketest_e2e.go
+    - Path: cmd/devctl/cmds/smoketest_e2e.go
       Note: End-to-end up/status/logs/down smoke test
-    - Path: devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/scripts/setup-fixture-repo-root.sh
+    - Path: cmd/devctl/cmds/wrap_service.go
+      Note: Direct __wrap-service execution + process-group semantics
+    - Path: pkg/supervise/supervisor.go
+      Note: Wrapper ready-file 2s deadline (regression context)
+    - Path: ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/scripts/setup-fixture-repo-root.sh
       Note: MO-006 fixture generator used for CLI loop
-    - Path: devctl/ttmp/2026/01/06/MO-009-TUI-COMPLETE-FEATURES--complete-tui-features-per-mo-006-design/scripts/setup-comprehensive-fixture.sh
+    - Path: ttmp/2026/01/06/MO-009-TUI-COMPLETE-FEATURES--complete-tui-features-per-mo-006-design/scripts/setup-comprehensive-fixture.sh
       Note: MO-009 comprehensive fixture generator used for CLI loop
-    - Path: devctl/ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/tasks.md
+    - Path: ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/tasks.md
       Note: Manual test matrix and checkoff list
 ExternalSources: []
 Summary: ""
@@ -29,6 +35,7 @@ LastUpdated: 2026-01-07T16:34:53.885126992-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Testing Diary
@@ -218,6 +225,161 @@ The fixture came up successfully (regression validated: no wrapper ready-file ti
 ### Technical details
 - `short-lived` status excerpt (PID mismatch):
   - `pid` (state) != `exit.pid` (child), with `exit_code: 0` and `stderr_tail` lines.
+
+## Step 4: Exhaustive CLI Matrix (Dynamic Commands, Flags, Protocol Negatives)
+
+This step expanded beyond the smoketests to cover the remaining CLI-only validation matrix: dynamic command behavior (including collisions and capability gating), root flag behaviors, handshake validation edge cases, and the “noisy stdout” negative plugins.
+
+The emphasis here was to make sure protocol v2’s stricter handshake validation and capability enforcement show up as actionable errors in real user runs (not just unit tests), and to verify the new request context (`ctx.repo_root`, `ctx.cwd`, `ctx.dry_run`) is actually delivered end-to-end.
+
+**Commit (code):** N/A
+
+### What I did
+- Ran unit tests:
+  - `cd devctl && go test ./... -count=1`
+- Dynamic commands:
+  - Created a temp repo with `testdata/plugins/command/plugin.py` and ran `devctl echo hello world` (stderr log line includes `plugin=cmd`).
+  - Created a temp repo with *two* command plugins; verified collision warning and that `echo` still runs:
+    - warning includes: `command name collision; keeping first`
+  - Created a temp plugin that advertises `capabilities.commands` but does **not** declare `command.run`; verified `echo` is not registered:
+    - `Error: unknown command "echo" for "devctl"`
+- Strictness:
+  - Built a 2-plugin pipeline where both return service `demo`:
+    - non-strict: last-wins (by priority order)
+    - strict: `Error: service name collision: demo`
+  - Built a config type-mismatch case (`services.demo` set to scalar, then later attempt to set `services.demo.port`):
+    - `Error: cannot set "services.demo.port": path segment "demo" is not an object`
+- Protocol/runtime negatives:
+  - v1 handshake rejection:
+    - `Error: E_PROTOCOL_INVALID_HANDSHAKE: unsupported protocol_version "v1"`
+  - noisy handshake (non-JSON before handshake):
+    - `Error: E_PROTOCOL_INVALID_JSON: NOT JSON: invalid character 'N' looking for beginning of value`
+  - noisy-after-handshake (invalid stdout after handshake) via smoketest:
+    - `Error: E_RUNTIME: ... E_PROTOCOL_STDOUT_CONTAMINATION: oops-not-json ...`
+- Request ctx correctness:
+  - Created a temp command plugin that logs `req["ctx"]` to stderr on `command.run`.
+  - Verified:
+    - `ctx.repo_root` equals `--repo-root` (or CWD when omitted)
+    - `ctx.cwd` equals the actual process cwd
+    - `--dry-run` sets `ctx.dry_run: true`
+- Root flags and CLI errors:
+  - `--timeout 0` is rejected:
+    - `Error: timeout must be > 0`
+  - Relative `--config .devctl.yaml` resolves under `--repo-root`.
+  - Running inside repo root without `--repo-root` uses CWD as repo root.
+  - No config present:
+    - `plan` prints `{}` and warns: `no plugins configured (add .devctl.yaml)`
+    - `up` errors: `no plugins configured (add .devctl.yaml)`
+  - Invalid YAML yields a parse error.
+  - `logs` errors:
+    - missing `--service`: `Error: --service is required`
+    - unknown `--service`: `Error: unknown service "nosuch"`
+    - follow cancels promptly via `timeout -s INT 1s ... logs --follow`
+  - Handshake validation checks:
+    - duplicate command names -> `E_PROTOCOL_INVALID_HANDSHAKE: duplicate command name "echo"`
+    - missing command name -> `E_PROTOCOL_INVALID_HANDSHAKE: capabilities.commands[0] missing name`
+    - missing arg type -> `E_PROTOCOL_INVALID_HANDSHAKE: capabilities.commands[0].args_spec[0] missing type`
+  - Multi-plugin start failure cleanup:
+    - config `ok-python + noisy-handshake` fails as expected, and no `ok-python/plugin.py` process is left running afterward.
+- Checked off tasks:
+  - `[21]..[29]`, `[60]..[77]`
+
+### Why
+- These are the “real world” surfaces where protocol validation, request context, and capability enforcement can regress without unit tests catching the UX impact.
+
+### What worked
+- All expected failures are surfaced as actionable errors (including protocol validation and stdout contamination).
+- Dynamic command registration is correctly gated by `command.run`.
+- Root flags behave as expected for repo-root/config/timeouts and common CLI error paths.
+
+### What didn't work
+- N/A (all cases behaved as expected; strictness behavior is “error vs last-wins”, not “warn vs error”).
+
+### What I learned
+- The “no config present” behavior is nicely discoverable: `plan` returns `{}` but warns loudly; `up` hard-errors.
+
+### What was tricky to build
+- Avoiding self-matching when checking for leaked plugin processes (`ps | rg` patterns need a “bracket trick” to not match the grep/rg command line).
+
+### What warrants a second pair of eyes
+- Whether we want non-strict collisions to log warnings (today it is silent “last wins”), especially for service collisions.
+
+### What should be done in the future
+- If we want a more explicit UX for non-strict collisions, add warnings at merge sites (out of scope for this pass).
+
+### Code review instructions
+- Start with dynamic command discovery and request ctx wiring:
+  - `devctl/cmd/devctl/cmds/dynamic_commands.go`
+  - `devctl/pkg/runtime/client.go` (`requestContextFrom`)
+
+### Technical details
+- Representative error excerpts captured during this step:
+  - `E_PROTOCOL_INVALID_HANDSHAKE: unsupported protocol_version "v1"`
+  - `E_PROTOCOL_INVALID_JSON: NOT JSON: invalid character 'N' ...`
+  - `E_PROTOCOL_STDOUT_CONTAMINATION: oops-not-json ...`
+
+## Step 5: Wrapper Regression (Dynamic Discovery Stall) + Fix Verification
+
+This step intentionally reproduced a real wrapper startup failure: because `AddDynamicPluginCommands` runs during `devctl` process startup, the supervisor’s internal `__wrap-service` invocation can be delayed by slow plugin handshakes long enough to trip the wrapper ready-file deadline.
+
+After reproducing the failure deterministically, I fixed it by skipping dynamic command discovery when the process is executing `__wrap-service`, and verified the same stress scenario succeeds. I also fixed direct `__wrap-service` invocation to work outside supervisor by ensuring the wrapper becomes a process-group leader before wiring child process groups.
+
+**Commit (code):** a6c4e52 — "wrap-service: skip dynamic discovery and setpgid"
+
+### What I did
+- Reproduced the failure with a config containing:
+  - three “slow handshake” plugins (sleep before emitting handshake)
+  - one pipeline plugin that launches a trivial service
+- Observed `up` failing after wrapper start:
+  - `Error: wrapper did not report child start`
+- Implemented fixes:
+  - Skip `AddDynamicPluginCommands` when first positional command is `__wrap-service`.
+  - Call `syscall.Setpgid(0, 0)` in `__wrap-service` before starting the child.
+  - Added a unit test: `TestDynamicCommands_SkipsWrapService`.
+- Verified:
+  - The same slow-handshake scenario now succeeds (`up complete`).
+  - `__wrap-service` can be run directly and writes:
+    - `--ready-file` with PID
+    - `--exit-info` JSON (with `stderr_tail`)
+  - Many-plugin stress (20× command plugins) no longer causes wrapper readiness failures.
+- Checked off tasks:
+  - `[45]`, `[78]`, `[79]`
+
+### Why
+- The wrapper ready-file deadline is intentionally short to catch “child never started”; it should not be sensitive to unrelated CLI startup behavior like dynamic command discovery.
+
+### What worked
+- Reproduction was deterministic (slow handshakes reliably trigger the failure pre-fix).
+- Post-fix, wrapper startup is robust to slow plugin discovery because it no longer performs discovery at all.
+
+### What didn't work
+- Direct `__wrap-service` invocation initially failed with:
+  - `Error: start child: fork/exec /usr/bin/bash: operation not permitted`
+
+### What I learned
+- `__wrap-service` implicitly depended on being started as a process-group leader by supervisor; making that invariant explicit prevents confusing “operation not permitted” failures when running it directly.
+
+### What was tricky to build
+- It’s easy to fix the symptom by lengthening the ready deadline; skipping discovery for internal commands is the more robust architectural fix.
+
+### What warrants a second pair of eyes
+- The interaction between Cobra startup hooks and internal subcommands is subtle; this skip needs to be maintained if we add more internal commands in the future.
+
+### What should be done in the future
+- Consider moving dynamic command discovery behind a lazily-initialized mechanism (only for “interactive” CLI commands) if startup cost becomes user-visible.
+
+### Code review instructions
+- Focus on the skip logic and the process-group change:
+  - `devctl/cmd/devctl/cmds/dynamic_commands.go`
+  - `devctl/cmd/devctl/cmds/wrap_service.go`
+  - `devctl/cmd/devctl/cmds/dynamic_commands_test.go`
+
+### Technical details
+- Failure reproduction excerpt:
+  - `Error: wrapper did not report child start`
+- Direct wrapper success excerpt includes:
+  - `exit_code: 0`
+  - `stderr_tail` containing the child’s stderr line.
 
 <!-- Provide background context needed to use this reference -->
 

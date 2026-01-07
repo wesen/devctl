@@ -23,15 +23,15 @@
 - [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-supervise (http-service plugin + GET)
 - [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-e2e (build testapps; up/status/logs/down)
 - [x] [RealWorld/Plugins] cd devctl && go run ./cmd/devctl --config .devctl.example.yaml plugins list (protocol_version shows v2)
-- [ ] [RealWorld/Dynamic] Create temp repo with testdata/plugins/command; run devctl echo hello (dynamic command wired from handshake)
-- [ ] [RealWorld/Dynamic] Dynamic command collision: two command plugins both advertise echo; confirm warning and command still runs
-- [ ] [RealWorld/Dynamic] Dynamic commands should not exist when plugin lacks command.run (create temp plugin that advertises commands only; confirm no cobra subcommand)
-- [ ] [RealWorld/Strict] Service collision strictness: configure two pipeline plugins (same service name demo); plan should error when strict=true and last-wins when strict=false
-- [ ] [RealWorld/Strict] Config collision strictness: configure two pipeline plugins that set same config key; verify strictness behavior (warn vs error)
-- [ ] [RealWorld/Protocol] Negative: v1 handshake rejected (create temp v1 plugin; devctl plugins list should fail with E_PROTOCOL_INVALID_HANDSHAKE)
-- [ ] [RealWorld/Runtime] Negative: noisy-handshake plugin (non-JSON before handshake) causes plugins list failure
-- [ ] [RealWorld/Runtime] Negative: noisy-after-handshake plugin causes a call to fail (cd devctl && go run ./cmd/devctl smoketest --plugin ./testdata/plugins/noisy-after-handshake/plugin.py)
-- [ ] [RealWorld/Meta] Verify request ctx repo_root/cwd/dry_run correctness by using a temp plugin that logs request.ctx to stderr
+- [x] [RealWorld/Dynamic] Create temp repo with testdata/plugins/command; run devctl echo hello (dynamic command wired from handshake)
+- [x] [RealWorld/Dynamic] Dynamic command collision: two command plugins both advertise echo; confirm warning and command still runs
+- [x] [RealWorld/Dynamic] Dynamic commands should not exist when plugin lacks command.run (create temp plugin that advertises commands only; confirm no cobra subcommand)
+- [x] [RealWorld/Strict] Service collision strictness: configure two pipeline plugins (same service name demo); plan should error when strict=true and last-wins when strict=false
+- [x] [RealWorld/Strict] Config collision strictness: configure two pipeline plugins that set same config key; verify strictness behavior (warn vs error)
+- [x] [RealWorld/Protocol] Negative: v1 handshake rejected (create temp v1 plugin; devctl plugins list should fail with E_PROTOCOL_INVALID_HANDSHAKE)
+- [x] [RealWorld/Runtime] Negative: noisy-handshake plugin (non-JSON before handshake) causes plugins list failure
+- [x] [RealWorld/Runtime] Negative: noisy-after-handshake plugin causes a call to fail (cd devctl && go run ./cmd/devctl smoketest --plugin ./testdata/plugins/noisy-after-handshake/plugin.py)
+- [x] [RealWorld/Meta] Verify request ctx repo_root/cwd/dry_run correctness by using a temp plugin that logs request.ctx to stderr
 - [x] [Fixture/MO-006] Run ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/scripts/setup-fixture-repo-root.sh to create REPO_ROOT
 - [x] [Fixture/MO-006] On MO-006 fixture: devctl plan (returns 2+ services; no errors)
 - [x] [Fixture/MO-006] On MO-006 fixture: devctl up (starts services; state.json created)
@@ -47,7 +47,7 @@
 - [x] [Fixture/MO-009] On comprehensive fixture: devctl status shows all services and exit info once short-lived exits
 - [x] [Fixture/MO-009] On comprehensive fixture: devctl logs (stdout+stderr) for each service (backend, worker, log-producer, flaky, short-lived)
 - [x] [Fixture/MO-009] On comprehensive fixture: devctl down works and removes state
-- [ ] [WrapService] Directly run __wrap-service with a trivial command; verify ready-file written and exit-info JSON created
+- [x] [WrapService] Directly run __wrap-service with a trivial command; verify ready-file written and exit-info JSON created
 - [ ] [TUI/Tmux] Create tmux session with 2 panes: left runs devctl tui; right runs devctl up/down/logs for the same repo-root
 - [ ] [TUI/Tmux] Use tmux capture-pane to save TUI output and errors during testing
 - [ ] [TUI/Global] Start TUI with --alt-screen=false for capture; verify q quits and ? toggles help
@@ -62,26 +62,26 @@
 - [ ] [TUI/Events] In events view: toggle system events with space; toggle numbered service filters 1-9
 - [ ] [TUI/Pipeline] In pipeline view: b/p/v focuses build/prepare/validate; o toggles live output viewport; j/k navigates; enter toggles details
 - [ ] [TUI/Plugins] In plugins view: j/k navigates; enter/i toggles expand; a expands all; A collapses all; esc returns
-- [ ] [CLI/Flags] Validate --timeout 0 is rejected (any command using root flags)
-- [ ] [CLI/Flags] Validate --config relative path is resolved under --repo-root
-- [ ] [CLI/Flags] Validate --repo-root default (run from inside fixture repo without --repo-root)
-- [ ] [CLI/Config] No config file present: devctl plan outputs {} and devctl up errors with no plugins configured
-- [ ] [CLI/Config] Invalid YAML in .devctl.yaml returns a parse error
-- [ ] [CLI/Strict] Config strictness=error enforces strict mode even without --strict
-- [ ] [CLI/Down] devctl down when no state exists returns an actionable error
-- [ ] [CLI/Status] devctl status when no state exists returns an actionable error
-- [ ] [CLI/Logs] devctl logs without --service errors (--service is required)
-- [ ] [CLI/Logs] devctl logs with unknown --service errors (unknown service)
-- [ ] [CLI/Logs] devctl logs --follow stops promptly on ctrl+c (manual, not just smoketest)
-- [ ] [CLI/Protocol] Handshake validation: duplicate capabilities.commands names should fail plugin start
-- [ ] [CLI/Protocol] Handshake validation: capabilities.commands entry missing name should fail plugin start
-- [ ] [CLI/Protocol] Handshake validation: capabilities.commands args_spec entry missing name/type should fail plugin start
-- [ ] [CLI/Runtime] Multi-plugin start failure: config with ok-python + noisy-handshake should ensure ok-python is terminated after failure
-- [ ] [CLI/Dynamic] Ensure AddDynamicPluginCommands only registers commands from plugins that support command.run
-- [ ] [CLI/Dynamic] Ensure dynamic command execution respects --dry-run flag (verify plugin sees ctx.dry_run via temp plugin)
-- [ ] [CLI/Dynamic] Ensure dynamic command execution respects --timeout (use command plugin modified to sleep; expect timeout error)
-- [ ] [Regression/Wrap] Stress dynamic discovery before wrapper: config with many plugins (e.g. 20x command plugin) should not cause supervise wrapper deadline failures
-- [ ] [Regression/Wrap] Stress dynamic discovery with slow handshakes (create temp plugin that sleeps before handshake); confirm impact and decide if dynamic discovery must be skipped for __wrap-service
+- [x] [CLI/Flags] Validate --timeout 0 is rejected (any command using root flags)
+- [x] [CLI/Flags] Validate --config relative path is resolved under --repo-root
+- [x] [CLI/Flags] Validate --repo-root default (run from inside fixture repo without --repo-root)
+- [x] [CLI/Config] No config file present: devctl plan outputs {} and devctl up errors with no plugins configured
+- [x] [CLI/Config] Invalid YAML in .devctl.yaml returns a parse error
+- [x] [CLI/Strict] Config strictness=error enforces strict mode even without --strict
+- [x] [CLI/Down] devctl down when no state exists returns an actionable error
+- [x] [CLI/Status] devctl status when no state exists returns an actionable error
+- [x] [CLI/Logs] devctl logs without --service errors (--service is required)
+- [x] [CLI/Logs] devctl logs with unknown --service errors (unknown service)
+- [x] [CLI/Logs] devctl logs --follow stops promptly on ctrl+c (manual, not just smoketest)
+- [x] [CLI/Protocol] Handshake validation: duplicate capabilities.commands names should fail plugin start
+- [x] [CLI/Protocol] Handshake validation: capabilities.commands entry missing name should fail plugin start
+- [x] [CLI/Protocol] Handshake validation: capabilities.commands args_spec entry missing name/type should fail plugin start
+- [x] [CLI/Runtime] Multi-plugin start failure: config with ok-python + noisy-handshake should ensure ok-python is terminated after failure
+- [x] [CLI/Dynamic] Ensure AddDynamicPluginCommands only registers commands from plugins that support command.run
+- [x] [CLI/Dynamic] Ensure dynamic command execution respects --dry-run flag (verify plugin sees ctx.dry_run via temp plugin)
+- [x] [CLI/Dynamic] Ensure dynamic command execution respects --timeout (use command plugin modified to sleep; expect timeout error)
+- [x] [Regression/Wrap] Stress dynamic discovery before wrapper: config with many plugins (e.g. 20x command plugin) should not cause supervise wrapper deadline failures
+- [x] [Regression/Wrap] Stress dynamic discovery with slow handshakes (create temp plugin that sleeps before handshake); confirm impact and decide if dynamic discovery must be skipped for __wrap-service
 - [ ] [TUI/Global] Start TUI with --refresh 100ms and verify state changes propagate quickly (no UI corruption)
 - [ ] [TUI/Global] Start TUI with --alt-screen=true and verify terminal resets cleanly on exit
 - [ ] [TUI/Help] Toggle help with ? across all views; verify keybindings shown match behavior

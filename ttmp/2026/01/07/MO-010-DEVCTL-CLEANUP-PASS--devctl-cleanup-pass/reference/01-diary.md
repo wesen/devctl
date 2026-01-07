@@ -11,19 +11,25 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: devctl/cmd/devctl/cmds/dynamic_commands.go
-      Note: Unconditional commands.list and command.run calls that can stall startup
-    - Path: devctl/cmd/devctl/cmds/wrap_service.go
-      Note: Wrapper command implementation that starts child
-    - Path: devctl/cmd/devctl/main.go
+    - Path: cmd/devctl/cmds/dynamic_commands.go
+      Note: |-
+        Unconditional commands.list and command.run calls that can stall startup
+        Skip discovery for __wrap-service to prevent wrapper readiness failures
+    - Path: cmd/devctl/cmds/dynamic_commands_test.go
+      Note: Unit test for wrapper discovery skip
+    - Path: cmd/devctl/cmds/wrap_service.go
+      Note: |-
+        Wrapper command implementation that starts child
+        Setpgid to allow safe process-group wiring when invoked directly
+    - Path: cmd/devctl/main.go
       Note: Shows dynamic plugin command discovery runs before every Cobra command (including __wrap-service)
-    - Path: devctl/pkg/supervise/supervisor.go
+    - Path: pkg/supervise/supervisor.go
       Note: Supervisor start/stop
-    - Path: devctl/ttmp/2026/01/06/MO-009-TUI-COMPLETE-FEATURES--complete-tui-features-per-mo-006-design/analysis/03-devctl-wrapper-startup-failure-in-comprehensive-fixture.md
+    - Path: ttmp/2026/01/06/MO-009-TUI-COMPLETE-FEATURES--complete-tui-features-per-mo-006-design/analysis/03-devctl-wrapper-startup-failure-in-comprehensive-fixture.md
       Note: Prior root-cause analysis of wrapper startup timing failure
-    - Path: devctl/ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/design-doc/01-safe-plugin-invocation-and-capability-enforcement-long-term-pattern.md
+    - Path: ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/design-doc/01-safe-plugin-invocation-and-capability-enforcement-long-term-pattern.md
       Note: Design doc produced from MO-009 review and codebase audit
-    - Path: devctl/ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/reference/02-runtime-client-plugin-protocol-ops-streams-and-commands.md
+    - Path: ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/reference/02-runtime-client-plugin-protocol-ops-streams-and-commands.md
       Note: New textbook reference on runtime client and plugin interaction
 ExternalSources: []
 Summary: ""
@@ -31,6 +37,7 @@ LastUpdated: 2026-01-07T13:47:34.626648784-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -871,3 +878,55 @@ The outcome is a large set of MO-010 tasks covering: core CLI flows (`plan/up/st
 ### Technical details
 - Commands executed (selection):
   - `docmgr task add --ticket MO-010-DEVCTL-CLEANUP-PASS --text "..."`
+
+## Step 15: Make __wrap-service Robust to CLI Startup Logic
+
+This step fixed a real-world regression surfaced during exhaustive testing: `devctl up` could fail with `wrapper did not report child start` if dynamic command discovery was slow (e.g., plugins that sleep before emitting the handshake). The root cause was that `AddDynamicPluginCommands` ran unconditionally during process startup, even for the supervisor’s internal `__wrap-service` invocation, delaying wrapper execution long enough to trip the supervisor’s ready-file deadline.
+
+It also fixed direct `__wrap-service` runs outside supervisor. When invoked manually, `__wrap-service` wasn’t guaranteed to be a process-group leader, which caused child startup to fail during process-group wiring; making the process-group invariant explicit resolved the confusing “operation not permitted” error and made the internal tool reliably runnable during debugging.
+
+**Commit (code):** a6c4e52 — "wrap-service: skip dynamic discovery and setpgid"
+
+### What I did
+- Reproduced the wrapper failure deterministically using a config with multiple “slow handshake” plugins.
+- Updated dynamic command discovery to skip plugin startup entirely when executing `__wrap-service`:
+  - `devctl/cmd/devctl/cmds/dynamic_commands.go`
+- Made `__wrap-service` establish a stable process-group invariant before starting its child:
+  - `devctl/cmd/devctl/cmds/wrap_service.go` (`syscall.Setpgid(0, 0)`)
+- Added unit coverage to prevent regression:
+  - `devctl/cmd/devctl/cmds/dynamic_commands_test.go` (`TestDynamicCommands_SkipsWrapService`)
+
+### Why
+- `__wrap-service` is an internal supervisor primitive; its readiness must not depend on unrelated user-facing startup features (dynamic command registration).
+- Direct execution of internal commands is a valuable debugging tool; it should work reliably without requiring a supervisor to pre-configure process groups.
+
+### What worked
+- The wrapper failure is no longer reproducible under the same slow-handshake stress scenario.
+- Direct `__wrap-service` runs now start children and write ready/exit-info files as expected.
+
+### What didn't work
+- Before the fix, direct wrapper invocation failed with:
+  - `Error: start child: fork/exec /usr/bin/bash: operation not permitted`
+- Before the fix, `up` failed under slow handshake conditions with:
+  - `Error: wrapper did not report child start`
+
+### What I learned
+- Any “global startup” logic in `main.go` that touches plugins can break internal subcommands unless explicitly scoped.
+
+### What was tricky to build
+- Avoiding an overly-broad skip (e.g. skipping discovery whenever an argument equals `__wrap-service`), since `__wrap-service` can also appear as an argument to real commands.
+
+### What warrants a second pair of eyes
+- The interplay between Cobra arg parsing and the minimal flag parsing in `parseRepoArgs` (the “first positional command” detection).
+
+### What should be done in the future
+- Consider moving dynamic command discovery into a Cobra `PreRun` hook that runs only for user-facing commands (not internal subcommands), if more internal commands are added.
+
+### Code review instructions
+- Start with:
+  - `devctl/cmd/devctl/cmds/dynamic_commands.go`
+  - `devctl/cmd/devctl/cmds/wrap_service.go`
+  - `devctl/cmd/devctl/cmds/dynamic_commands_test.go`
+- Validate:
+  - `cd devctl && go test ./... -count=1`
+  - Re-run a slow-handshake wrapper stress fixture and confirm `up` succeeds.

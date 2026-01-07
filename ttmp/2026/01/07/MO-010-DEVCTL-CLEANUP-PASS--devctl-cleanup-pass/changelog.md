@@ -142,3 +142,14 @@ Testing: ran CLI smoketests and fixture-based CLI loops (MO-006 + MO-009), recor
 
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/reference/03-testing-diary.md — Recorded CLI-only test runs and failures
 
+
+## 2026-01-07
+
+Fix wrapper startup: skip dynamic discovery for __wrap-service; make __wrap-service usable when run directly (commit a6c4e52)
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/dynamic_commands.go — Skip dynamic plugin discovery when executing __wrap-service
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/dynamic_commands_test.go — Add coverage for __wrap-service skip
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/wrap_service.go — Call syscall.Setpgid so child process-group wiring works outside supervisor
+
