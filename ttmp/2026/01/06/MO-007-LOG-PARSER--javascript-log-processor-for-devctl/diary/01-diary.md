@@ -14,16 +14,19 @@ RelatedFiles:
       Note: Implemented in Step 6 (commit 9b86bc031454347e03d78b237e817c735dd50392)
     - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/01-mvp-design-javascript-log-parser-goja.md
       Note: Primary design doc produced during diary steps
+    - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/02-next-step-design-multi-script-pipeline-for-log-parse.md
+      Note: Drafted in Step 10 to define multi-script pipeline evolution
     - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/index.md
       Note: Ticket overview and navigation
     - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/reference/01-source-notes-provided-spec-trimmed-for-mvp.md
       Note: MVP scope trimming decisions captured here
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-06T19:13:19-05:00
+LastUpdated: 2026-01-06T19:27:06-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -566,3 +569,49 @@ This step removes that output buffering so each emitted event is written directl
 
 ### Technical details
 - Output now writes directly to the underlying writer returned by Cobra (`cmd.OutOrStdout()`), so each `Encode` call results in immediate writes without waiting for a buffered flush.
+
+## Step 10: Design the Next “Consequence Jump” (Multi-Script Pipeline)
+
+After stabilizing the MVP, I drafted the next design step to make `log-parse` materially more useful: loading **many scripts** and composing them as a deterministic pipeline. This is the point where the tool becomes something you can realistically keep in a repo and evolve: multiple parsers for multiple formats, shared filter/transform stages, validation/introspection, and per-module stats.
+
+This design intentionally does *not* enable JavaScript `require()` yet; composition happens in Go by loading multiple scripts and executing their hooks in order. The separate `MO-008-REQUIRE-SANDBOX` ticket captures how we can safely enable `require()` later.
+
+### What I did
+- Wrote a new design document that defines:
+  - multi-script loading UX (`--module`, `--modules-dir`, optional `--config`)
+  - parse mode (`first` vs `all`)
+  - pipeline semantics and ordering
+  - validation and introspection (`validate`, `--print-pipeline`, `--stats`)
+  - Go API sketches (`Pipeline`, `LoadedModule`) and pseudocode execution model
+- Related the design doc to the current implementation and examples.
+
+### Why
+- Real-world log streams are mixed-format and need multiple parsers.
+- Users want reusable, small scripts for enrichment/filtering across many services.
+- Deterministic composition and validation tools reduce “it works on my machine” script drift.
+
+### What worked
+- The resulting document provides a concrete path from MVP to a multi-module system without changing the core “safe-by-default” posture.
+
+### What didn't work
+- N/A (design-only step).
+
+### What I learned
+- The simplest “multi-script” approach that preserves performance is “one runtime per worker, load all scripts into that runtime, store callables, and run hooks in Go”.
+
+### What was tricky to build
+- Getting unambiguous semantics when multiple parse hooks exist (hence an explicit `--parse-mode`).
+
+### What warrants a second pair of eyes
+- Stage ordering semantics and whether `order` should live in JS metadata vs config-only.
+- Whether we should allow parse modules to emit multiple events per line (array return) in the first multi-module iteration.
+
+### What should be done in the future
+- Implement the `Pipeline` refactor in `devctl/pkg/logjs` and extend `log-parse` flags accordingly.
+
+### Code review instructions
+- Review the design doc:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/02-next-step-design-multi-script-pipeline-for-log-parse.md`
+
+### Technical details
+- The design explicitly defers `require()` to `MO-008-REQUIRE-SANDBOX` to avoid accidentally expanding filesystem capabilities.
