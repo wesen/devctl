@@ -35,3 +35,13 @@ Add deep-dive analysis of wrapper ready-file failure caused by dynamic plugin co
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/main.go — Wrapper startup impacted by AddDynamicPluginCommands
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/supervise/supervisor.go — Hard-coded 2s wrapper ready wait
 
+
+## 2026-01-07
+
+Document capability checking and safe plugin invocation; identify unguarded commands.list/command.run and stream risks
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/dynamic_commands.go — Calls ops without SupportsOp gating
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/runtime/client.go — Call/StartStream rely on ctx timeouts if plugin ignores requests
+
