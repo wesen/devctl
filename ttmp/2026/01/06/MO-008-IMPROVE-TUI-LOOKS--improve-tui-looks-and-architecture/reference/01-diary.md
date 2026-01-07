@@ -360,3 +360,43 @@ Modified files:
 - `devctl/pkg/tui/models/service_model.go` - Styled process info, log viewport, exit info
 - `devctl/pkg/tui/models/pipeline_model.go` - Styled phases, steps, validation
 - `devctl/pkg/tui/models/eventlog_model.go` - Styled event timeline with icons
+
+## Step 6: Visual Testing in tmux
+
+Ran the TUI in tmux at various terminal sizes (80x24, 100x30, 120x40) to identify visual issues.
+
+### What I did
+- Started TUI in tmux session against fixture at `/tmp/devctl-tui-fixture-GkbBIS`
+- Captured screenshots of all views (Dashboard, Events, Pipeline, Service for alive/dead)
+- Tested window resizing
+- Documented all issues found
+
+### What I learned
+- The resize event bubbling is working correctly (via `applyChildSizes()`)
+- The issue is ServiceModel.View() not respecting height constraints
+- Box borders add +3 lines that weren't accounted for in `reservedViewportLines()`
+- Stray characters appear due to incomplete screen clearing
+
+### Issues Found
+See `analysis/02-visual-issues-found-during-testing.md` for full details.
+
+Summary:
+1. **Critical**: ServiceModel header cut off when viewing dead services (overflow)
+2. **High**: Stray `╯` characters after header separator
+3. **Medium**: Long paths/stderr lines wrap ungracefully
+4. **Low**: PID truncated with ellipsis in dashboard
+5. **Enhancement**: Large empty space in dashboard at larger sizes
+
+### Root Cause Analysis
+The `reservedViewportLines()` method in ServiceModel is based on OLD plain-text layout:
+- It estimates ~6-11 lines for header content
+- But new boxed layout uses `len(infoLines)+3` for info box (~10 lines)
+- Plus exit info box (variable, 8-15 lines)
+- Plus log box (`vp.Height+3`)
+- Total can easily exceed `m.height` passed from RootModel
+
+### What should be done next
+1. Refactor `reservedViewportLines()` to match actual box heights
+2. Consider fixed-height sections with internal scrolling
+3. Add string truncation helpers for long content
+4. Pad lines to full width to prevent stray characters
