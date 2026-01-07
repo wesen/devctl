@@ -20,7 +20,7 @@ RelatedFiles:
       Note: MVP scope trimming decisions captured here
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-06T18:56:23-05:00
+LastUpdated: 2026-01-06T19:13:19-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -520,3 +520,49 @@ The key outcome is a concrete plan for a *safe* `require()` sandbox: we can enab
   - It calls `require.Require(runtime, "console")` which panics unless `(*require.Registry).Enable(runtime)` was called.
 - Sandbox seam:
   - `require.WithLoader(...)` lets us replace filesystem module loading; returning `ModuleFileDoesNotExistError` makes the resolver continue searching.
+
+## Step 9: Make log-parse Output Unbuffered (Stream Results Immediately)
+
+Observed that `log-parse` appeared to “only print parsed lines once stdin closes”. The core issue was output buffering: the CLI wrapped stdout in a `bufio.Writer` and only flushed at process exit, so NDJSON output would sit in the buffer during long-running streams (e.g. `tail -f ... | log-parse ...`).
+
+This step removes that output buffering so each emitted event is written directly to `cmd.OutOrStdout()` as it’s produced. Input is still line-oriented (we require newline-delimited input for streaming), but output is now immediate for each event.
+
+### What I did
+- Updated `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/cmd/log-parse/main.go`:
+  - removed `bufio.NewWriter(cmd.OutOrStdout())`
+  - write NDJSON via `json.NewEncoder(cmd.OutOrStdout()).Encode(...)` directly
+  - write pretty JSON directly to `cmd.OutOrStdout()`
+- Ran `go fmt ./cmd/log-parse` and `go test ./... -count=1`.
+
+### Why
+- For a streaming CLI, “buffer until exit” defeats the purpose of `--follow`/piped usage.
+- Keeping buffering out of the program makes behavior consistent regardless of where stdout points (terminal, pipe, file).
+
+### What worked
+- `go test ./... -count=1` still passes.
+- Interactive piping should now print each event as soon as a newline-delimited input line arrives and is processed.
+
+### What didn't work
+- N/A (small behavioral fix).
+
+### What I learned
+- For NDJSON streaming tools, it’s best to avoid adding an extra user-space buffered writer unless you flush on every record (which defeats most performance benefits anyway).
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm expected UX for non-newline-terminated input: `log-parse` remains line-based and won’t process partial lines until a newline arrives.
+
+### What should be done in the future
+- Consider adding an explicit `--flush`/`--buffered-output` flag if we ever want to trade throughput for latency in a controlled way (default should remain streaming-friendly).
+
+### Code review instructions
+- Inspect the change:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/cmd/log-parse/main.go`
+- Validate:
+  - `cd devctl && go test ./... -count=1`
+  - `echo '{\"msg\":\"hi\"}' | go run ./cmd/log-parse --js /tmp/parser.js`
+
+### Technical details
+- Output now writes directly to the underlying writer returned by Cobra (`cmd.OutOrStdout()`), so each `Encode` call results in immediate writes without waiting for a buffered flush.
