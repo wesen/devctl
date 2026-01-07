@@ -31,3 +31,12 @@ Implemented MVP engine (devctl/pkg/logjs) + standalone cmd/log-parse, with tests
 
 - /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/module.go — Core engine implementation
 
+
+## 2026-01-06
+
+Drafted next-step design for multi-script log-parse pipelines (multi parse modules, shared stages, validation/introspection) (commit 8ee3e97).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/02-next-step-design-multi-script-pipeline-for-log-parse.md — Defines pipeline semantics and CLI evolution
+
