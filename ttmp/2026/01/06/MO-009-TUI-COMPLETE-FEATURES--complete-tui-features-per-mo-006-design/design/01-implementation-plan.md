@@ -524,7 +524,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
 
 ### Tasks
 
-- [ ] **4.1.1** Add Source field to EventLogEntry
+- [x] **4.1.1** Add Source field to EventLogEntry
   ```go
   type EventLogEntry struct {
       At     time.Time
@@ -534,7 +534,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
   }
   ```
 
-- [ ] **4.1.2** Update event rendering
+- [x] **4.1.2** Update event rendering
   ```go
   line := lipgloss.JoinHorizontal(lipgloss.Center,
       style.Render(icon),
@@ -566,7 +566,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
 
 ### Tasks
 
-- [ ] **4.2.1** Add LogLevel type
+- [x] **4.2.1** Add LogLevel type
   ```go
   type LogLevel string
   const (
@@ -577,7 +577,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
   )
   ```
 
-- [ ] **4.2.2** Add level icons
+- [x] **4.2.2** Add level icons
   ```go
   // styles/icons.go
   func LogLevelIcon(level LogLevel) string {
@@ -591,7 +591,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
   }
   ```
 
-- [ ] **4.2.3** Update event rendering with level
+- [x] **4.2.3** Update event rendering with level
 
 **Files to modify**:
 - `pkg/tui/domain.go`
@@ -606,7 +606,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
 
 ### Tasks
 
-- [ ] **4.3.1** Add filter state to EventLogModel
+- [x] **4.3.1** Add filter state to EventLogModel
   ```go
   type EventLogModel struct {
       // existing...
@@ -614,7 +614,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
   }
   ```
 
-- [ ] **4.3.2** Add toggle keybindings
+- [x] **4.3.2** Add toggle keybindings
   ```go
   case "1", "2", "3", "4", "5", "6", "7", "8", "9":
       // Toggle service filter by index
@@ -622,7 +622,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
       m = m.toggleServiceFilter(idx)
   ```
 
-- [ ] **4.3.3** Render filter status bar
+- [x] **4.3.3** Render filter status bar
   ```go
   filterBar := "Filters: "
   for name, enabled := range m.serviceFilters {
@@ -632,7 +632,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
   }
   ```
 
-- [ ] **4.3.4** Apply filters in refreshViewportContent
+- [x] **4.3.4** Apply filters in refreshViewportContent
   ```go
   for _, e := range m.entries {
       if !m.serviceFilters[e.Source] {
@@ -659,7 +659,7 @@ Before implementing UI features, we need to ensure the data layer provides all r
 
 ### Tasks
 
-- [ ] **4.4.1** Add level filter state
+- [x] **4.4.1** Add level filter state
   ```go
   type EventLogModel struct {
       // existing...
@@ -667,11 +667,11 @@ Before implementing UI features, we need to ensure the data layer provides all r
   }
   ```
 
-- [ ] **4.4.2** Add level toggle menu
+- [x] **4.4.2** Add level toggle menu
   - Press `l` to cycle through levels
   - Or show submenu
 
-- [ ] **4.4.3** Apply level filters
+- [x] **4.4.3** Apply level filters
 
 **Files to modify**:
 - `pkg/tui/models/eventlog_model.go`
