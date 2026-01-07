@@ -258,6 +258,74 @@ type StateSnapshot struct {
 
 ---
 
+### Step 4: Phase 2 Implementation - Dashboard Enhancements (21:45)
+
+Implemented all 11 tasks for Phase 2 (Dashboard Enhancements).
+
+#### 2.1 Health/CPU/MEM Columns
+
+**Updated `pkg/tui/models/dashboard_model.go`**:
+- Added new columns: Health, CPU, MEM to service table
+- Created `formatCPU()` and `formatMem()` formatters
+- Read CPU/MEM from `StateSnapshot.ProcessStats`
+- Read health from `StateSnapshot.Health`
+- Show "-" for missing data
+
+**New table layout**:
+```
+| Name           | Status         | Health | PID    | CPU   | MEM   |
+| backend        | Running        | ●      | 12847  | 12.3% | 245M  |
+| frontend       | Dead (exit=1)  | ○      | 0      | -     | -     |
+```
+
+#### 2.2 Recent Events Preview
+
+**Added to DashboardModel**:
+- `recentEvents []tui.EventLogEntry` - Stores last 5 events
+- `AppendEvent()` method - Called from RootModel when events arrive
+- `renderEventsPreview()` - Renders compact event list with icons
+
+**Event preview format**:
+```
+ 14:23:45  [backend]    ℹ  Request completed in 234ms
+ 14:23:42  [frontend]   ✗  Build failed: missing dependency
+```
+
+#### 2.3 Plugins Summary
+
+**Added to `pkg/tui/state_events.go`**:
+- `PluginSummary` struct with ID, Path, Priority, Status
+
+**Updated `pkg/tui/state_watcher.go`**:
+- `readPlugins()` - Reads from `.devctl.yaml` config
+- Checks if plugin path exists to determine status
+
+**Added `renderPluginsSummary()` to DashboardModel**:
+- Shows list of plugins with status icons
+- Counts active plugins in title
+
+**Plugin summary format**:
+```
+╭──────────────────────────────────────────────────────────────────╮
+│Plugins (3 active)                                   [p] details  │
+│ ✓ moments-config       (priority: 10)                            │
+│ ✓ moments-build        (priority: 15)                            │
+│ ✓ moments-launch       (priority: 20)                            │
+╰──────────────────────────────────────────────────────────────────╯
+```
+
+#### Files Modified
+- `pkg/tui/models/dashboard_model.go` - Major updates for all three sections
+- `pkg/tui/models/root_model.go` - Route events to dashboard
+- `pkg/tui/state_events.go` - Added PluginSummary, updated StateSnapshot
+- `pkg/tui/state_watcher.go` - Added readPlugins()
+
+#### Testing
+- `go build ./...` passes
+- All packages compile without errors
+
+---
+
 ### Technical References
 
 - Original Design: `MO-006-DEVCTL-TUI/.../01-devctl-tui-layout.md`

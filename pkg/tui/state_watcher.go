@@ -11,6 +11,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/go-go-golems/devctl/pkg/config"
 	"github.com/go-go-golems/devctl/pkg/proc"
 	"github.com/go-go-golems/devctl/pkg/state"
 	"github.com/pkg/errors"
@@ -121,6 +122,9 @@ func (w *StateWatcher) emitSnapshot(ctx context.Context) error {
 	// Check health for services with health config
 	health := w.checkHealth(st.Services, alive)
 
+	// Read plugin info from config
+	plugins := w.readPlugins()
+
 	return w.publishSnapshot(StateSnapshot{
 		RepoRoot:     w.RepoRoot,
 		At:           time.Now(),
@@ -129,7 +133,39 @@ func (w *StateWatcher) emitSnapshot(ctx context.Context) error {
 		Alive:        alive,
 		ProcessStats: processStats,
 		Health:       health,
+		Plugins:      plugins,
 	})
+}
+
+// readPlugins reads plugin info from the devctl config file.
+func (w *StateWatcher) readPlugins() []PluginSummary {
+	cfgPath := config.DefaultPath(w.RepoRoot)
+	cfg, err := config.LoadOptional(cfgPath)
+	if err != nil || cfg == nil {
+		return nil
+	}
+
+	plugins := make([]PluginSummary, 0, len(cfg.Plugins))
+	for _, p := range cfg.Plugins {
+		status := "active"
+		// Check if plugin path exists
+		pluginPath := p.Path
+		if pluginPath != "" && pluginPath[0] != '/' {
+			pluginPath = w.RepoRoot + "/" + pluginPath
+		}
+		if _, err := os.Stat(pluginPath); err != nil {
+			status = "error"
+		}
+
+		plugins = append(plugins, PluginSummary{
+			ID:       p.ID,
+			Path:     p.Path,
+			Priority: p.Priority,
+			Status:   status,
+		})
+	}
+
+	return plugins
 }
 
 // checkHealth runs health checks for services with health config.

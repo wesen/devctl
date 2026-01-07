@@ -34,6 +34,14 @@ type HealthCheckResult struct {
 	ResponseMs  int64        `json:"response_ms,omitempty"`
 }
 
+// PluginSummary contains summary information about a plugin.
+type PluginSummary struct {
+	ID       string `json:"id"`
+	Path     string `json:"path"`
+	Priority int    `json:"priority"`
+	Status   string `json:"status"` // "active" | "disabled" | "error"
+}
+
 type StateSnapshot struct {
 	RepoRoot     string                        `json:"repo_root"`
 	At           time.Time                     `json:"at"`
@@ -43,4 +51,5 @@ type StateSnapshot struct {
 	Error        string                        `json:"error,omitempty"`
 	ProcessStats map[int]*proc.Stats           `json:"process_stats,omitempty"` // PID -> stats
 	Health       map[string]*HealthCheckResult `json:"health,omitempty"`        // service name -> health
+	Plugins      []PluginSummary               `json:"plugins,omitempty"`       // Plugin summaries
 }

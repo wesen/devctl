@@ -32,6 +32,9 @@ type DashboardModel struct {
 	confirmText   string
 
 	exitSummary map[string]string
+
+	// Recent events for preview
+	recentEvents []tui.EventLogEntry
 }
 
 func NewDashboardModel() DashboardModel { return DashboardModel{} }
@@ -190,7 +193,7 @@ func (m DashboardModel) View() string {
 		return theme.TitleMuted.Render("System: Unknown (state missing)")
 	}
 
-	// Build services table
+	// Build services table with Health, CPU, MEM columns
 	services := s.State.Services
 	rows := make([]widgets.TableRow, len(services))
 	for i, svc := range services {
@@ -208,19 +211,40 @@ func (m DashboardModel) View() string {
 			}
 		}
 
+		// Health status
+		healthIcon := styles.IconUnknown
+		if s.Health != nil {
+			if h, ok := s.Health[svc.Name]; ok {
+				healthIcon = styles.HealthIcon(string(h.Status))
+			}
+		}
+
+		// CPU and Memory stats
+		cpuText := "-"
+		memText := "-"
+		if s.ProcessStats != nil {
+			if stats, ok := s.ProcessStats[svc.PID]; ok {
+				cpuText = formatCPU(stats.CPUPercent)
+				memText = formatMem(stats.MemoryMB)
+			}
+		}
+
 		pidText := fmt.Sprintf("%d", svc.PID)
 
 		rows[i] = widgets.TableRow{
 			Icon:     icon,
-			Cells:    []string{svc.Name, status, pidText},
+			Cells:    []string{svc.Name, status, healthIcon, pidText, cpuText, memText},
 			Selected: i == m.selected,
 		}
 	}
 
 	serviceColumns := []widgets.TableColumn{
-		{Header: "Name", Width: 18},
-		{Header: "Status", Width: 18},
-		{Header: "PID", Width: 12},
+		{Header: "Name", Width: 14},
+		{Header: "Status", Width: 16},
+		{Header: "Health", Width: 8},
+		{Header: "PID", Width: 8},
+		{Header: "CPU", Width: 7},
+		{Header: "MEM", Width: 7},
 	}
 
 	table := widgets.NewTable(serviceColumns).
@@ -250,6 +274,18 @@ func (m DashboardModel) View() string {
 
 	// Services box
 	sections = append(sections, servicesBox.Render())
+
+	// Recent events preview
+	if len(m.recentEvents) > 0 {
+		sections = append(sections, "")
+		sections = append(sections, m.renderEventsPreview(theme))
+	}
+
+	// Plugins summary
+	if s.Plugins != nil && len(s.Plugins) > 0 {
+		sections = append(sections, "")
+		sections = append(sections, m.renderPluginsSummary(theme, s.Plugins))
+	}
 
 	// Confirmation dialogs
 	if m.confirmKill {
@@ -312,6 +348,101 @@ func (m DashboardModel) renderError(theme styles.Theme, errText string) string {
 	return box.Render()
 }
 
+func (m DashboardModel) renderEventsPreview(theme styles.Theme) string {
+	var lines []string
+	for _, e := range m.recentEvents {
+		ts := e.At.Format("15:04:05")
+		icon := styles.LogLevelIcon(string(e.Level))
+
+		// Style based on level
+		var style lipgloss.Style
+		switch e.Level {
+		case tui.LogLevelError:
+			style = theme.StatusDead
+		case tui.LogLevelWarn:
+			style = lipgloss.NewStyle().Foreground(theme.Warning)
+		default:
+			style = theme.TitleMuted
+		}
+
+		source := e.Source
+		if source == "" {
+			source = "system"
+		}
+		if len(source) > 10 {
+			source = source[:10]
+		}
+
+		// Truncate text if too long
+		text := e.Text
+		maxTextLen := m.width - 30
+		if maxTextLen > 10 && len(text) > maxTextLen {
+			text = text[:maxTextLen-3] + "..."
+		}
+
+		line := fmt.Sprintf(" %s  %-10s  %s  %s",
+			theme.TitleMuted.Render(ts),
+			theme.KeybindKey.Render("["+source+"]"),
+			style.Render(icon),
+			style.Render(text),
+		)
+		lines = append(lines, line)
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Left, lines...)
+	box := widgets.NewBox(fmt.Sprintf("Recent Events (%d)", len(m.recentEvents))).
+		WithTitleRight("[e] all events").
+		WithContent(content).
+		WithSize(m.width, len(lines)+2)
+
+	return box.Render()
+}
+
+func (m DashboardModel) renderPluginsSummary(theme styles.Theme, plugins []tui.PluginSummary) string {
+	var lines []string
+	for _, p := range plugins {
+		// Status icon
+		var icon string
+		var style lipgloss.Style
+		switch p.Status {
+		case "active":
+			icon = styles.IconSuccess
+			style = theme.StatusRunning
+		case "error":
+			icon = styles.IconError
+			style = theme.StatusDead
+		default:
+			icon = styles.IconPending
+			style = theme.TitleMuted
+		}
+
+		priority := fmt.Sprintf("(priority: %d)", p.Priority)
+		line := fmt.Sprintf(" %s %-20s  %s",
+			style.Render(icon),
+			theme.Title.Render(p.ID),
+			theme.TitleMuted.Render(priority),
+		)
+		lines = append(lines, line)
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Left, lines...)
+
+	// Count active plugins
+	activeCount := 0
+	for _, p := range plugins {
+		if p.Status == "active" {
+			activeCount++
+		}
+	}
+
+	box := widgets.NewBox(fmt.Sprintf("Plugins (%d active)", activeCount)).
+		WithTitleRight("[p] details").
+		WithContent(content).
+		WithSize(m.width, len(lines)+2)
+
+	return box.Render()
+}
+
 func (m DashboardModel) selectedServiceName() string {
 	names := m.serviceNames()
 	if len(names) == 0 {
@@ -342,6 +473,37 @@ func (m DashboardModel) selectedService() *state.ServiceRecord {
 		return nil
 	}
 	return &m.last.State.Services[m.selected]
+}
+
+// AppendEvent adds an event to the recent events list (max 5).
+func (m DashboardModel) AppendEvent(e tui.EventLogEntry) DashboardModel {
+	m.recentEvents = append(m.recentEvents, e)
+	if len(m.recentEvents) > 5 {
+		m.recentEvents = m.recentEvents[len(m.recentEvents)-5:]
+	}
+	return m
+}
+
+// formatCPU formats a CPU percentage for display.
+func formatCPU(pct float64) string {
+	if pct < 0 {
+		return "-"
+	}
+	if pct >= 100 {
+		return fmt.Sprintf("%.0f%%", pct)
+	}
+	return fmt.Sprintf("%.1f%%", pct)
+}
+
+// formatMem formats memory in MB for display.
+func formatMem(mb int64) string {
+	if mb < 0 {
+		return "-"
+	}
+	if mb >= 1024 {
+		return fmt.Sprintf("%.1fG", float64(mb)/1024)
+	}
+	return fmt.Sprintf("%dM", mb)
 }
 
 func clampInt(v, lo, hi int) int {

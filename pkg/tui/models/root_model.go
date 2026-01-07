@@ -143,6 +143,7 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tui.EventLogAppendMsg:
 		m.events = m.events.Append(v.Entry)
+		m.dashboard = m.dashboard.AppendEvent(v.Entry) // Update dashboard's recent events
 		if s := strings.TrimSpace(v.Entry.Text); s != "" {
 			if strings.HasPrefix(s, "action failed:") ||
 				strings.HasPrefix(s, "action publish failed:") ||

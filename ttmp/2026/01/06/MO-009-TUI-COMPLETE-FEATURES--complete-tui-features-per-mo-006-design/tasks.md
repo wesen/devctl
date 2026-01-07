@@ -21,24 +21,24 @@
 
 ---
 
-## Phase 2: Dashboard Enhancements
+## Phase 2: Dashboard Enhancements ✅ COMPLETE
 
 ### 2.1 Health/CPU/MEM Columns
-- [ ] 2.1.1 Update services table columns (Name, Status, Health, PID, CPU, MEM)
-- [ ] 2.1.2 Create formatCPU/formatMem formatters
-- [ ] 2.1.3 Add health icon to service row
-- [ ] 2.1.4 Handle missing data gracefully (show "-")
+- [x] 2.1.1 Update services table columns (Name, Status, Health, PID, CPU, MEM)
+- [x] 2.1.2 Create formatCPU/formatMem formatters
+- [x] 2.1.3 Add health icon to service row
+- [x] 2.1.4 Handle missing data gracefully (show "-")
 
 ### 2.2 Recent Events Preview
-- [ ] 2.2.1 Add recentEvents field to DashboardModel
-- [ ] 2.2.2 Subscribe dashboard to event log updates
-- [ ] 2.2.3 Render events preview box (last 5)
-- [ ] 2.2.4 Format event lines compactly
+- [x] 2.2.1 Add recentEvents field to DashboardModel
+- [x] 2.2.2 Subscribe dashboard to event log updates
+- [x] 2.2.3 Render events preview box (last 5)
+- [x] 2.2.4 Format event lines compactly
 
 ### 2.3 Plugins Summary
-- [ ] 2.3.1 Add PluginSummary struct to StateSnapshot
-- [ ] 2.3.2 Read plugin info from devctl config
-- [ ] 2.3.3 Render plugins summary box
+- [x] 2.3.1 Add PluginSummary struct to StateSnapshot
+- [x] 2.3.2 Read plugin info from devctl config
+- [x] 2.3.3 Render plugins summary box
 
 ---
 
@@ -170,7 +170,7 @@
 | Phase | Tasks | Status |
 |-------|-------|--------|
 | 1. Data Layer | 12 | ✅ Complete |
-| 2. Dashboard | 11 | ⏳ Not started |
+| 2. Dashboard | 11 | ✅ Complete |
 | 3. Service Detail | 9 | ⏳ Not started |
 | 4. Events View | 14 | ⏳ Not started |
 | 5. Pipeline View | 10 | ⏳ Not started |
