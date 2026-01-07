@@ -160,6 +160,14 @@ Surface exit diagnostics in the TUI: show a compact `dead (exit=...)` hint on th
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/service_model.go — Render exit details + stderr tail excerpt in the service view
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/root_model.go — Adjust child sizing so the status line doesn’t break layouts
 
+## 2026-01-07
+
+Expand the ticket’s implementation task breakdown with message-level slices for pipeline/validation/cancellation, plus a small “failure UX polish” milestone (commit b3c648a).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md — Break down next milestones into message-driven slices
+
 ## 2026-01-06
 
 Finalize M0 baseline: fix doc hygiene (numeric prefix) and land initial TUI skeleton (commit 2e22243).

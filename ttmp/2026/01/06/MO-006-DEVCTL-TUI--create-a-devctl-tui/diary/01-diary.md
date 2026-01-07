@@ -800,3 +800,48 @@ This step teaches the TUI to read the per-service `*.exit.json` and surface a co
 
 ### Technical details
 - Exit info is read from the path stored in state (`state.ServiceRecord.ExitInfo`) using `state.ReadExitInfo`.
+
+## Step 19: Refine the task breakdown for pipeline/validation/messages
+
+With the “what is dead and why” UX in place, the next chunk of value is making pipeline and validation outcomes visible and actionable inside the TUI. The existing design docs already describe the shape of this, but the tasks list was still too coarse to drive incremental PRs without constantly re-deciding message boundaries and model responsibilities.
+
+This step expands the ticket’s task breakdown with explicit message types and smaller implementation slices, especially around pipeline lifecycle events, validation rendering, and cancellation semantics. It should make it easier to implement one clean vertical slice at a time (publish messages → render view → add polish) without getting stuck in “big bang” refactors.
+
+**Commit (docs):** b3c648a — "MO-006: expand implementation tasks"
+
+### What I did
+- Expanded Milestone 2 tasks into a more concrete checklist:
+  - pipeline run and phase message types
+  - per-step build/prepare events
+  - validation data structure sketch + UX expectations
+  - explicit cancellation events and a UI cancel affordance
+- Added a small “Failure UX polish” sub-milestone focused on exit diagnostics ergonomics (caching, expand/collapse, tail-lines flag).
+- Added a doc follow-up to extend the tmux playbook with failure reproduction scenarios.
+
+### Why
+- The next features (pipeline + validation) are message-driven; a good breakdown needs to name the messages and where they’re produced/consumed.
+- Smaller tasks reduce thrash and make it easier to review changes model-by-model.
+
+### What worked
+- The task list now reads like a sequence of small, independently shippable slices instead of three large “do everything” bullets.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Naming the UI message types up front is a good forcing function: it makes it obvious what data we actually need to render, and what can stay internal to the runner.
+
+### What was tricky to build
+- Keeping the task breakdown concrete without prematurely locking the exact on-screen layout for the pipeline/validation view.
+
+### What warrants a second pair of eyes
+- Whether the proposed pipeline message set is too granular (per-step) or not granular enough for a satisfying progress UI.
+
+### What should be done in the future
+- Convert the new “message sketches” into concrete Go types when we start implementing PipelineModel, and adjust the checklist if reality disagrees.
+
+### Code review instructions
+- Review `devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/tasks.md` to confirm the milestone decomposition matches how we want to implement Pipeline/Validation next.
+
+### Technical details
+- The task breakdown assumes a “publish typed messages → Bubble Tea models render state” flow, consistent with the Watermill→Bubble Tea design in the working note.
