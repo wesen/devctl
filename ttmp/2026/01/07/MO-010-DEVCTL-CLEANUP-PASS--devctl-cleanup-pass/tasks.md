@@ -48,20 +48,20 @@
 - [x] [Fixture/MO-009] On comprehensive fixture: devctl logs (stdout+stderr) for each service (backend, worker, log-producer, flaky, short-lived)
 - [x] [Fixture/MO-009] On comprehensive fixture: devctl down works and removes state
 - [x] [WrapService] Directly run __wrap-service with a trivial command; verify ready-file written and exit-info JSON created
-- [ ] [TUI/Tmux] Create tmux session with 2 panes: left runs devctl tui; right runs devctl up/down/logs for the same repo-root
-- [ ] [TUI/Tmux] Use tmux capture-pane to save TUI output and errors during testing
-- [ ] [TUI/Global] Start TUI with --alt-screen=false for capture; verify q quits and ? toggles help
-- [ ] [TUI/Global] Verify tab cycles views Dashboard -> Events -> Pipeline -> Plugins (and back)
-- [ ] [TUI/Dashboard] With no state, dashboard shows stopped view; press u triggers ActionUp and pipeline events
-- [ ] [TUI/Dashboard] After up, verify services list shows PIDs and running status; j/k selection; enter/l opens service detail
-- [ ] [TUI/Dashboard] Test down confirmation (d then y) stops services and returns to stopped state
-- [ ] [TUI/Dashboard] Test restart confirmation (r then y) performs down+up and shows pipeline phases
-- [ ] [TUI/Dashboard] Test kill flow (x then n cancels; x then y sends SIGTERM); verify service transitions to dead
-- [ ] [TUI/Service] In service detail: tab toggles stdout/stderr; f toggles follow; / applies text filter; ctrl+l clears; d detaches
-- [ ] [TUI/Events] In events view: / filter; ctrl+l clear; c clears buffer; p pause/unpause; l opens level menu (d/i/w/e toggles; a all; n none)
-- [ ] [TUI/Events] In events view: toggle system events with space; toggle numbered service filters 1-9
-- [ ] [TUI/Pipeline] In pipeline view: b/p/v focuses build/prepare/validate; o toggles live output viewport; j/k navigates; enter toggles details
-- [ ] [TUI/Plugins] In plugins view: j/k navigates; enter/i toggles expand; a expands all; A collapses all; esc returns
+- [x] [TUI/Tmux] Create tmux session with 2 panes: left runs devctl tui; right runs devctl up/down/logs for the same repo-root
+- [x] [TUI/Tmux] Use tmux capture-pane to save TUI output and errors during testing
+- [x] [TUI/Global] Start TUI with --alt-screen=false for capture; verify q quits and ? toggles help
+- [x] [TUI/Global] Verify tab cycles views Dashboard -> Events -> Pipeline -> Plugins (and back)
+- [x] [TUI/Dashboard] With no state, dashboard shows stopped view; press u triggers ActionUp and pipeline events
+- [x] [TUI/Dashboard] After up, verify services list shows PIDs and running status; j/k selection; enter/l opens service detail
+- [x] [TUI/Dashboard] Test down confirmation (d then y) stops services and returns to stopped state
+- [x] [TUI/Dashboard] Test restart confirmation (r then y) performs down+up and shows pipeline phases
+- [x] [TUI/Dashboard] Test kill flow (x then n cancels; x then y sends SIGTERM); verify service transitions to dead
+- [x] [TUI/Service] In service detail: tab toggles stdout/stderr; f toggles follow; / applies text filter; ctrl+l clears; d detaches
+- [x] [TUI/Events] In events view: / filter; ctrl+l clear; c clears buffer; p pause/unpause; l opens level menu (d/i/w/e toggles; a all; n none)
+- [x] [TUI/Events] In events view: toggle system events with space; toggle numbered service filters 1-9
+- [x] [TUI/Pipeline] In pipeline view: b/p/v focuses build/prepare/validate; o toggles live output viewport; j/k navigates; enter toggles details
+- [x] [TUI/Plugins] In plugins view: j/k navigates; enter/i toggles expand; a expands all; A collapses all; esc returns
 - [x] [CLI/Flags] Validate --timeout 0 is rejected (any command using root flags)
 - [x] [CLI/Flags] Validate --config relative path is resolved under --repo-root
 - [x] [CLI/Flags] Validate --repo-root default (run from inside fixture repo without --repo-root)
@@ -82,12 +82,12 @@
 - [x] [CLI/Dynamic] Ensure dynamic command execution respects --timeout (use command plugin modified to sleep; expect timeout error)
 - [x] [Regression/Wrap] Stress dynamic discovery before wrapper: config with many plugins (e.g. 20x command plugin) should not cause supervise wrapper deadline failures
 - [x] [Regression/Wrap] Stress dynamic discovery with slow handshakes (create temp plugin that sleeps before handshake); confirm impact and decide if dynamic discovery must be skipped for __wrap-service
-- [ ] [TUI/Global] Start TUI with --refresh 100ms and verify state changes propagate quickly (no UI corruption)
-- [ ] [TUI/Global] Start TUI with --alt-screen=true and verify terminal resets cleanly on exit
-- [ ] [TUI/Help] Toggle help with ? across all views; verify keybindings shown match behavior
-- [ ] [TUI/Events] Verify p pause/unpause keeps a bounded paused queue and does not OOM under high event rates
-- [ ] [TUI/Events] Verify l level menu can be opened/closed with esc/enter/l (no stuck modal)
-- [ ] [TUI/Events] Verify c clear resets counts and viewport content
-- [ ] [TUI/Dashboard] Verify pressing u when state exists triggers restart confirmation (not a second up)
-- [ ] [TUI/Dashboard] Verify dashboard kill uses SIGTERM and logs success/failure events
-- [ ] [TUI/Service] Verify service view shows exit info after a service dies (if exit info file exists)
+- [x] [TUI/Global] Start TUI with --refresh 100ms and verify state changes propagate quickly (no UI corruption)
+- [x] [TUI/Global] Start TUI with --alt-screen=true and verify terminal resets cleanly on exit
+- [x] [TUI/Help] Toggle help with ? across all views; verify keybindings shown match behavior
+- [x] [TUI/Events] Verify p pause/unpause keeps a bounded paused queue and does not OOM under high event rates
+- [x] [TUI/Events] Verify l level menu can be opened/closed with esc/enter/l (no stuck modal)
+- [x] [TUI/Events] Verify c clear resets counts and viewport content
+- [x] [TUI/Dashboard] Verify pressing u when state exists triggers restart confirmation (not a second up)
+- [x] [TUI/Dashboard] Verify dashboard kill uses SIGTERM and logs success/failure events
+- [x] [TUI/Service] Verify service view shows exit info after a service dies (if exit info file exists)

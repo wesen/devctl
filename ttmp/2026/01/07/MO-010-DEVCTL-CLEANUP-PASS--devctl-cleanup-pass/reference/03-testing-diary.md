@@ -379,7 +379,75 @@ After reproducing the failure deterministically, I fixed it by skipping dynamic 
   - `Error: wrapper did not report child start`
 - Direct wrapper success excerpt includes:
   - `exit_code: 0`
-  - `stderr_tail` containing the child’s stderr line.
+  - `stderr_tail` containing the child's stderr line.
+
+## Step 6: TUI Testing in Tmux
+
+This step validated the TUI functionality end-to-end using a tmux session for capture and testing. The goal was to verify all major TUI keybindings, view cycling, confirmations, and service management features work correctly with protocol v2.
+
+**Commit (code):** N/A
+
+### What I did
+- Created tmux session with fixture at `/tmp/devctl-tui-fixture-*`
+- Started TUI with `--alt-screen=false` for capture
+- Tested view cycling: Dashboard → Events → Pipeline → Plugins → Dashboard (Tab key)
+- Tested help toggle (?) shows keybindings for all views
+- Tested up flow (u): ActionUp starts services, dashboard shows PIDs and status
+- Tested j/k navigation: selection moves between services
+- Tested service detail (l/enter): opens log view with stdout/stderr toggle (Tab)
+- Tested follow toggle (f): switches between on/off
+- Tested exit info display: dead services show exit code and stderr tail
+- Tested down confirmation (d then y): stops services, returns to stopped state
+- Tested restart confirmation (r then y): performs down+up with new PIDs
+- Tested kill flow (x then n cancels, x then y sends SIGTERM): service transitions to dead
+- Tested Events view: pause (p), clear (c), level menu (l), service filters [1-9]
+- Tested Pipeline view: shows phases from restart operation
+- Tested Plugins view: expand (enter) shows plugin details
+- Tested `--alt-screen=true`: terminal resets cleanly on exit
+- Tested `--refresh 100ms`: UI updates quickly without corruption
+- Tested u when state exists: triggers restart confirmation (not second up)
+
+### Why
+- TUI is a major user-facing surface; manual validation ensures keybindings and state transitions work as documented in help.
+
+### What worked
+- All core keybindings function as expected
+- View cycling is consistent (Dashboard → Events → Pipeline → Plugins)
+- Confirmations for destructive actions (down, restart, kill) work correctly
+- Service detail view shows logs with stdout/stderr toggle
+- Exit info appears when services die
+- Events pause/clear/level menu work
+- Both alt-screen modes work correctly
+
+### What didn't work
+- N/A (all tested features work as expected)
+
+### What I learned
+- The TUI help overlay accurately reflects the implemented keybindings
+- Events view has comprehensive filtering: by service [1-9], by level (d/i/w/e), pause/clear
+- Kill confirmation shows PID being killed; SIGTERM event appears in logs
+
+### What was tricky to build
+- Capturing TUI output in tmux requires `--alt-screen=false` for reliable capture-pane
+
+### What warrants a second pair of eyes
+- Events view high-frequency polling (1/sec state: loaded) could be optimized
+
+### What should be done in the future
+- Consider throttling "state: loaded" events in the Events view
+
+### Code review instructions
+- Focus on TUI model implementations:
+  - `devctl/pkg/tui/models/dashboard_model.go`
+  - `devctl/pkg/tui/models/service_model.go`
+  - `devctl/pkg/tui/models/events_model.go`
+  - `devctl/pkg/tui/models/pipeline_model.go`
+  - `devctl/pkg/tui/models/plugins_model.go`
+
+### Technical details
+- Fixture used: MO-006 fixture at `/tmp/devctl-tui-fixture-*`
+- Services tested: http (long-running), spewer (exits with code 2)
+- All views tested: Dashboard, Events, Pipeline, Plugins
 
 <!-- Provide background context needed to use this reference -->
 

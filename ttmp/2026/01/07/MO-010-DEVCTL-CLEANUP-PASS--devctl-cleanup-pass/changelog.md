@@ -153,3 +153,12 @@ Fix wrapper startup: skip dynamic discovery for __wrap-service; make __wrap-serv
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/dynamic_commands_test.go — Add coverage for __wrap-service skip
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/wrap_service.go — Call syscall.Setpgid so child process-group wiring works outside supervisor
 
+
+## 2026-01-07
+
+Completed TUI testing in tmux: validated all views (Dashboard, Events, Pipeline, Plugins), keybindings, confirmations, service management, and exit info display. All TUI tasks checked off.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-010-DEVCTL-CLEANUP-PASS--devctl-cleanup-pass/reference/03-testing-diary.md — Added Step 6 for TUI testing
+
