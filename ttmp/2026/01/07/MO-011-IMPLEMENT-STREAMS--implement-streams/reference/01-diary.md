@@ -194,6 +194,59 @@ The key outcome is a concrete safety net: runtime tests now cover both “teleme
 - Commands run:
   - `cd devctl && go test ./...`
 
+## Step 6: Add a Streams view to the TUI (start/stop + render stream events)
+
+This step added an actual UI surface for streams so the newly implemented `UIStreamRunner` can be exercised from within the TUI. The Streams view provides a minimal but functional workflow: start a stream by pasting JSON (op/plugin_id/input), watch events arrive, stop the stream, and clear per-stream event history.
+
+The main outcome is that streams are now end-to-end usable inside the TUI process: the view publishes `tui.stream.start` and `tui.stream.stop` requests (via RootModel), the runner starts the plugin stream and emits `stream.*` domain events, the transformer/forwarder delivers those as `tui.stream.*` messages, and the Streams view renders them.
+
+**Commit (code):** bbe7e27 — "tui: add Streams view"
+
+### What I did
+- Added `StreamsModel` in `devctl/pkg/tui/models/streams_model.go`:
+  - `n` opens a JSON prompt for `{op, plugin_id?, input?}` and publishes a stream start request
+  - `j/k` selects a stream, `↑/↓` scrolls within the event viewport
+  - `x` stops the selected stream, `c` clears its event buffer
+- Integrated Streams view into `RootModel`:
+  - new `ViewStreams` and tab-cycle `plugins → streams → dashboard`
+  - routes `StreamStartedMsg` / `StreamEventMsg` / `StreamEndedMsg` into `StreamsModel` even when not active
+  - added help + footer keybinds for Streams
+- Ran `go test ./...` in `devctl/`.
+
+### Why
+- Without a Streams view, the runner and message plumbing were “headless” and harder to validate.
+- The JSON-based “new stream” prompt is a low-friction way to support arbitrary stream ops without building complex forms yet.
+
+### What worked
+- Streams view compiles cleanly and uses the same Bubble Tea patterns as Events/Service (textinput + viewport).
+- Stream event spam stays contained to the Streams view; the global Events log only gets “started/ended” entries.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Using JSON as the initial “command language” avoids premature UX decisions while still making streams debuggable and flexible.
+
+### What was tricky to build
+- Coordinating keybindings so stream selection and viewport scrolling don’t fight: selection uses `j/k`, scrolling uses `↑/↓`.
+
+### What warrants a second pair of eyes
+- UI ergonomics: whether `j/k` vs `↑/↓` is the right split for selection vs scrolling.
+- Whether the Streams view should eventually support multiple panes (stream list + event list) more cleanly.
+
+### What should be done in the future
+- Add a small “start telemetry stream” shortcut that autofills JSON for common ops (telemetry/logs.follow) once we pick first-class ops.
+- Add batching/coalescing in the runner or model if telemetry events prove too high-frequency.
+
+### Code review instructions
+- Review `devctl/pkg/tui/models/streams_model.go` for the UI surface and message emission.
+- Review `devctl/pkg/tui/models/root_model.go` for view integration and message routing.
+- Validate: `cd devctl && go test ./... -count=1` and run `devctl tui` manually.
+
+### Technical details
+- Commands run:
+  - `cd devctl && go test ./...`
+
 ## Step 5: Implement `UIStreamRunner` (central stream lifecycle management in the TUI process)
 
 This step implemented the first production subsystem that actually calls `runtime.Client.StartStream`: `UIStreamRunner`. It follows the same architectural pattern as `UIActionRunner`, but for long-lived stream lifecycles instead of short-lived pipeline actions. The runner centralizes start/stop, chooses a plugin client, publishes `stream.*` domain events, and ensures plugin processes are cleaned up when streams end or are stopped.

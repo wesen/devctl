@@ -74,3 +74,13 @@ Step 5: Implemented UIStreamRunner and wired it into devctl tui startup (commit 
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/tui.go — RegisterUIStreamRunner wired into TUI startup
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/stream_runner.go — Centralized stream lifecycle management (start/stop
 
+
+## 2026-01-07
+
+Step 6: Added Streams view to start/stop streams and render stream events end-to-end (commit bbe7e27).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/root_model.go — Added ViewStreams and routing of stream msgs into StreamsModel
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/streams_model.go — Streams UI (JSON start prompt
+
