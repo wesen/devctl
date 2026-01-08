@@ -618,6 +618,13 @@ func injectGoHelpers(m *Module) error {
 			ok  bool
 			err error
 		)
+		parseNumeric := func(i int64) (time.Time, bool) {
+			// Heuristic: if it looks like seconds, treat as seconds.
+			if i > 0 && i < 1_000_000_000_000 {
+				return time.Unix(i, 0).UTC(), true
+			}
+			return time.UnixMilli(i).UTC(), true
+		}
 
 		switch vv := v.(type) {
 		case time.Time:
@@ -650,9 +657,9 @@ func injectGoHelpers(m *Module) error {
 				t, ok = tt, true
 			}
 		case int64:
-			t, ok = time.UnixMilli(vv).UTC(), true
+			t, ok = parseNumeric(vv)
 		case float64:
-			t, ok = time.UnixMilli(int64(vv)).UTC(), true
+			t, ok = parseNumeric(int64(vv))
 		default:
 			// Try numeric string fallback.
 			s := strings.TrimSpace(call.Arguments[0].String())

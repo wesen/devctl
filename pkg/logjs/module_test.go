@@ -195,6 +195,33 @@ register({
 	require.Equal(t, "2020-01-01T00:00:00.000Z", *evs[0].Timestamp)
 }
 
+func TestModule_Helper_ParseTimestamp_Numeric(t *testing.T) {
+	tmp := t.TempDir()
+
+	scriptPath := writeTempScript(t, tmp, `
+register({
+  name: "t",
+  parse(line, ctx) {
+    return [
+      { timestamp: log.parseTimestamp(1700000000), message: "sec" },
+      { timestamp: log.parseTimestamp(1700000000000), message: "ms" }
+    ];
+  },
+});
+`)
+
+	m, err := LoadFromFile(context.Background(), scriptPath, Options{})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = m.Close(context.Background()) })
+
+	evs, errs, err := m.ProcessLine(context.Background(), "ignored\n", "stdin", 1)
+	require.NoError(t, err)
+	require.Empty(t, errs)
+	require.Len(t, evs, 2)
+	require.Equal(t, "2023-11-14T22:13:20.000Z", *evs[0].Timestamp)
+	require.Equal(t, "2023-11-14T22:13:20.000Z", *evs[1].Timestamp)
+}
+
 func TestModule_Helper_MultilineBuffer_AfterNegate(t *testing.T) {
 	tmp := t.TempDir()
 
