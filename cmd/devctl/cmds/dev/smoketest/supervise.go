@@ -1,4 +1,4 @@
-package cmds
+package smoketest
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	goruntime "runtime"
 	"time"
 
 	"github.com/go-go-golems/devctl/pkg/config"
@@ -22,11 +21,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newSmokeTestSuperviseCmd() *cobra.Command {
+func newSuperviseCmd() *cobra.Command {
 	var timeout time.Duration
 
 	cmd := &cobra.Command{
-		Use:   "smoketest-supervise",
+		Use:   "supervise",
 		Short: "Smoke test: run config.mutate+launch.plan and supervise an HTTP server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
@@ -38,7 +37,7 @@ func newSmokeTestSuperviseCmd() *cobra.Command {
 			}
 			defer func() { _ = os.RemoveAll(repoRoot) }()
 
-			plugin := filepath.Join(findDevctlRoot(), "testdata", "plugins", "http-service", "plugin.py")
+			plugin := filepath.Join(findDevctlRootFromCaller(), "testdata", "plugins", "http-service", "plugin.py")
 
 			cfgPath := filepath.Join(repoRoot, ".devctl.yaml")
 			cfgBody := []byte("plugins:\n  - id: http\n    path: python3\n    args:\n      - \"" + plugin + "\"\n    priority: 10\n")
@@ -128,7 +127,7 @@ func newSmokeTestSuperviseCmd() *cobra.Command {
 
 			b, _ := json.MarshalIndent(map[string]any{"ok": true, "url": urlStr}, "", "  ")
 			_, _ = fmt.Fprintln(cmd.OutOrStdout(), string(b))
-			log.Info().Msg("smoketest-supervise ok")
+			log.Info().Msg("smoketest supervise ok")
 			return nil
 		},
 	}
@@ -137,12 +136,3 @@ func newSmokeTestSuperviseCmd() *cobra.Command {
 	return cmd
 }
 
-func findDevctlRoot() string {
-	_, thisFile, _, ok := goruntime.Caller(0)
-	if !ok {
-		wd, _ := os.Getwd()
-		return wd
-	}
-	// this file: devctl/cmd/devctl/cmds/smoketest_supervise.go
-	return filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", "..", ".."))
-}

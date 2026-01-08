@@ -37,10 +37,10 @@ jobs:
       - name: Smoke tests (fast)
         run: |
           set -euo pipefail
-          GOWORK=off go run ./cmd/devctl smoketest
-          GOWORK=off go run ./cmd/devctl smoketest-supervise
-          GOWORK=off go run ./cmd/devctl smoketest-logs
-          GOWORK=off go run ./cmd/devctl smoketest-failures
+          GOWORK=off go run ./cmd/devctl dev smoketest
+          GOWORK=off go run ./cmd/devctl dev smoketest supervise
+          GOWORK=off go run ./cmd/devctl dev smoketest logs
+          GOWORK=off go run ./cmd/devctl dev smoketest failures
 
   smoke-e2e:
     runs-on: ubuntu-latest
@@ -57,4 +57,4 @@ jobs:
       - name: Smoke test (e2e)
         run: |
           set -euo pipefail
-          GOWORK=off go run ./cmd/devctl smoketest-e2e
+          GOWORK=off go run ./cmd/devctl dev smoketest e2e

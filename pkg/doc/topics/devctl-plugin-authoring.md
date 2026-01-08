@@ -764,7 +764,7 @@ Good plugins are boring: they behave deterministically and fail loudly with acti
   - keep a small “fixture plugin” that simulates failures (timeouts, bad health, validation fail)
   - keep smoke tests that run a full `up/status/logs/down` loop in a temp repo
 
-In this repo, the fixture patterns live under `devctl/testdata/plugins/` and smoke tests are runnable via `go run ./cmd/devctl smoketest-*`.
+In this repo, the fixture patterns live under `devctl/testdata/plugins/` and smoke tests are runnable via `go run ./cmd/devctl dev smoketest ...` (for example: `dev smoketest e2e`, `dev smoketest logs`, `dev smoketest failures`, `dev smoketest supervise`).
 
 ## 14. Troubleshooting: the common failure modes
 

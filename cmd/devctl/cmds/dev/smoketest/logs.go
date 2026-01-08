@@ -1,10 +1,12 @@
-package cmds
+package smoketest
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,11 +20,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newSmokeTestLogsCmd() *cobra.Command {
+func newLogsCmd() *cobra.Command {
 	var timeout time.Duration
 
 	cmd := &cobra.Command{
-		Use:   "smoketest-logs",
+		Use:   "logs",
 		Short: "Smoke test: follow logs and cancel promptly",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
@@ -105,7 +107,7 @@ func newSmokeTestLogsCmd() *cobra.Command {
 			out := map[string]any{"ok": true, "bytes": buf.Len()}
 			b, _ := json.MarshalIndent(out, "", "  ")
 			_, _ = fmt.Fprintln(cmd.OutOrStdout(), string(b))
-			log.Info().Msg("smoketest-logs ok")
+			log.Info().Msg("smoketest logs ok")
 			return nil
 		},
 	}
@@ -124,3 +126,32 @@ func buildLogSpewer(ctx context.Context, devctlRoot string, outPath string) erro
 	}
 	return nil
 }
+
+func followFile(ctx context.Context, path string, w io.Writer) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = f.Close() }()
+
+	_, _ = f.Seek(0, io.SeekEnd)
+	r := bufio.NewReader(f)
+
+	for {
+		line, err := r.ReadString('\n')
+		if err == nil {
+			_, _ = w.Write([]byte(line))
+			continue
+		}
+		if errors.Is(err, io.EOF) {
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(200 * time.Millisecond):
+				continue
+			}
+		}
+		return err
+	}
+}
+
