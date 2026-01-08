@@ -1,0 +1,124 @@
+# Changelog
+
+## 2026-01-07
+
+- Initial workspace created
+
+
+## 2026-01-07
+
+Created textbook stream analysis (protocol/runtime/TUI integration) and uploaded PDF to reMarkable.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-011-IMPLEMENT-STREAMS--implement-streams/analysis/01-streams-codebase-analysis-and-tui-integration.md — Primary deliverable; also uploaded as PDF
+
+
+## 2026-01-07
+
+Added design doc for telemetry stream plugin shape, UIStreamRunner, and devctl stream CLI.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-011-IMPLEMENT-STREAMS--implement-streams/design-doc/01-streams-telemetry-plugin-uistreamrunner-and-devctl-stream-cli.md — Design for stream subsystem (TUI+CLI)
+
+
+## 2026-01-07
+
+Added implementation task breakdown for streams (UIStreamRunner + devctl stream CLI + fixtures).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-011-IMPLEMENT-STREAMS--implement-streams/tasks.md — Stream implementation tasks
+
+
+## 2026-01-07
+
+Step 2: Make StartStream fail fast when op not declared in capabilities.ops (commit a2013d4).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/runtime/client.go — StartStream now gates on capabilities.ops
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/runtime/runtime_test.go — Added StartStream unsupported fail-fast test
+
+
+## 2026-01-07
+
+Step 3: Added telemetry and negative stream fixtures + runtime tests (commit 25819fd).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/runtime/runtime_test.go — Tests for telemetry fixture + streams-only invocation gating
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/testdata/plugins/streams-only-never-respond/plugin.py — Streams-only advertisement fixture (never responds)
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/testdata/plugins/telemetry/plugin.py — Deterministic telemetry.stream fixture
+
+
+## 2026-01-07
+
+Step 4: Added TUI stream message plumbing (topics, transformer, forwarder) (commit 472593f).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/forward.go — Forwards stream UI messages into Bubble Tea
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/root_model.go — Publishes stream start/stop requests via bus
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/topics.go — New stream-related domain/UI envelope types
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/transform.go — Maps stream domain events to UI messages (logs only start/end)
+
+
+## 2026-01-07
+
+Step 5: Implemented UIStreamRunner and wired it into devctl tui startup (commit e0db4d5).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/tui.go — RegisterUIStreamRunner wired into TUI startup
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/stream_runner.go — Centralized stream lifecycle management (start/stop
+
+
+## 2026-01-07
+
+Step 6: Added Streams view to start/stop streams and render stream events end-to-end (commit bbe7e27).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/root_model.go — Added ViewStreams and routing of stream msgs into StreamsModel
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/tui/models/streams_model.go — Streams UI (JSON start prompt
+
+
+## 2026-01-07
+
+Step 7: Added devctl stream start CLI for starting streams and printing events (commit 12a85fd).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/root.go — Registers stream command
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/stream.go — New stream CLI (provider selection
+
+
+## 2026-01-07
+
+Step 8: Added a Streams TUI+CLI validation playbook (task 12).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-011-IMPLEMENT-STREAMS--implement-streams/playbook/01-streams-tui-cli-validation-playbook.md — Copy/paste manual validation procedure for streams
+
+
+## 2026-01-07
+
+Checked off initial placeholder task line in tasks.md (cleanup).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-011-IMPLEMENT-STREAMS--implement-streams/tasks.md — Marked placeholder as done
+
+
+## 2026-01-07
+
+Docs: refresh streams analysis/design to reflect implemented UI/CLI + ops-only StartStream gating (commit f453a99)
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-011-IMPLEMENT-STREAMS--implement-streams/analysis/01-streams-codebase-analysis-and-tui-integration.md — Update executive summary + fixtures + current implementation status
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-011-IMPLEMENT-STREAMS--implement-streams/design-doc/01-streams-telemetry-plugin-uistreamrunner-and-devctl-stream-cli.md — Correct StartStream gating semantics
+

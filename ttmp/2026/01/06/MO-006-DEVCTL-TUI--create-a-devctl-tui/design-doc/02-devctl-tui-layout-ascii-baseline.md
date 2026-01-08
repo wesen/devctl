@@ -9,7 +9,7 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: moments/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/devctl-tui-layout.md
+    - Path: devctl/ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/sources/local/01-devctl-tui-layout.md
       Note: Full imported ASCII baseline; this doc contains curated excerpts
 ExternalSources: []
 Summary: ""
@@ -19,13 +19,15 @@ WhenToUse: ""
 ---
 
 
+
+
 # Devctl TUI Layout: ASCII Baseline
 
 ## Executive Summary
 
 This document captures the baseline TUI layout as ASCII “screenshots”, imported from an external Markdown file. It exists to make the intended UX concrete and reviewable without needing to run any code.
 
-The canonical imported source is `../sources/local/devctl-tui-layout.md`. This doc excerpts the key baseline screens that the implementation design references.
+The canonical imported source is `../sources/local/01-devctl-tui-layout.md`. This doc excerpts the key baseline screens that the implementation design references.
 
 ## Problem Statement
 
@@ -210,5 +212,5 @@ Adopt the following baseline screens as the initial UX target. Some fields shown
 
 ## References
 
-- Full imported baseline (includes additional screens): `../sources/local/devctl-tui-layout.md`
+- Full imported baseline (includes additional screens): `../sources/local/01-devctl-tui-layout.md`
 - Implementation design: `01-devctl-tui-layout-and-implementation-design.md`

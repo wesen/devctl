@@ -8,9 +8,10 @@ import (
 	"time"
 
 	"github.com/go-go-golems/devctl/pkg/config"
-	"github.com/go-go-golems/devctl/pkg/discovery"
 	"github.com/go-go-golems/devctl/pkg/engine"
 	"github.com/go-go-golems/devctl/pkg/patch"
+	"github.com/go-go-golems/devctl/pkg/protocol"
+	"github.com/go-go-golems/devctl/pkg/repository"
 	"github.com/go-go-golems/devctl/pkg/runtime"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -18,32 +19,26 @@ import (
 	"github.com/spf13/pflag"
 )
 
-type CommandSpec struct {
-	Name     string       `json:"name"`
-	Help     string       `json:"help,omitempty"`
-	ArgsSpec []CommandArg `json:"args_spec,omitempty"`
-}
-
-type CommandArg struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
-
 func AddDynamicPluginCommands(root *cobra.Command, args []string) error {
-	repoRoot, cfgPath, err := parseRepoArgs(args)
+	repoRoot, cfgPath, positionals, err := parseRepoArgs(args)
 	if err != nil {
 		return err
+	}
+	if len(positionals) > 0 && positionals[0] == "__wrap-service" {
+		return nil
+	}
+	if len(positionals) == 0 {
+		return nil
+	}
+	if positionals[0] != "completion" && rootHasCommand(root, positionals[0]) {
+		return nil
 	}
 
-	cfg, err := config.LoadOptional(cfgPath)
+	repo, err := repository.Load(repository.Options{RepoRoot: repoRoot, ConfigPath: cfgPath, Cwd: repoRoot, DryRun: false})
 	if err != nil {
 		return err
 	}
-	specs, err := discovery.Discover(cfg, discovery.Options{RepoRoot: repoRoot})
-	if err != nil {
-		return err
-	}
-	if len(specs) == 0 {
+	if len(repo.Specs) == 0 {
 		return nil
 	}
 
@@ -51,29 +46,23 @@ func AddDynamicPluginCommands(root *cobra.Command, args []string) error {
 
 	type provider struct {
 		spec runtime.PluginSpec
-		cmd  CommandSpec
+		cmd  protocol.CommandSpec
 	}
 	byName := map[string]provider{}
 
-	for _, spec := range specs {
-		c, err := factory.Start(context.Background(), spec)
+	for _, spec := range repo.Specs {
+		c, err := factory.Start(context.Background(), spec, runtime.StartOptions{Meta: repo.Request})
 		if err != nil {
 			log.Warn().Err(err).Str("plugin", spec.ID).Msg("failed to start plugin for command discovery")
 			continue
 		}
 
-		var out struct {
-			Commands []CommandSpec `json:"commands"`
-		}
-		callCtx, callCancel := context.WithTimeout(context.Background(), 3*time.Second)
-		err = c.Call(callCtx, "commands.list", map[string]any{}, &out)
-		callCancel()
+		hs := c.Handshake()
 		_ = c.Close(context.Background())
-		if err != nil {
+		if !c.SupportsOp("command.run") {
 			continue
 		}
-
-		for _, cmdSpec := range out.Commands {
+		for _, cmdSpec := range hs.Capabilities.Commands {
 			if cmdSpec.Name == "" {
 				continue
 			}
@@ -96,6 +85,10 @@ func AddDynamicPluginCommands(root *cobra.Command, args []string) error {
 				if err != nil {
 					return err
 				}
+				meta, err := requestMetaFromRootOptions(opts)
+				if err != nil {
+					return err
+				}
 
 				cfg, err := config.LoadOptional(opts.Config)
 				if err != nil {
@@ -105,25 +98,8 @@ func AddDynamicPluginCommands(root *cobra.Command, args []string) error {
 					opts.Strict = true
 				}
 
-				specs, err := discovery.Discover(cfg, discovery.Options{RepoRoot: opts.RepoRoot})
-				if err != nil {
-					return err
-				}
-
-				var target *runtime.PluginSpec
-				for _, s := range specs {
-					if s.ID == prov.spec.ID {
-						tmp := s
-						target = &tmp
-						break
-					}
-				}
-				if target == nil {
-					return errors.Errorf("command provider plugin not found: %s", prov.spec.ID)
-				}
-
 				factory := runtime.NewFactory(runtime.FactoryOptions{HandshakeTimeout: 2 * time.Second, ShutdownTimeout: 2 * time.Second})
-				client, err := factory.Start(cmd.Context(), *target)
+				client, err := factory.Start(cmd.Context(), prov.spec, runtime.StartOptions{Meta: meta})
 				if err != nil {
 					return err
 				}
@@ -161,7 +137,7 @@ func AddDynamicPluginCommands(root *cobra.Command, args []string) error {
 	return nil
 }
 
-func parseRepoArgs(args []string) (string, string, error) {
+func parseRepoArgs(args []string) (string, string, []string, error) {
 	fs := pflag.NewFlagSet("devctl-bootstrap", pflag.ContinueOnError)
 	fs.ParseErrorsAllowlist.UnknownFlags = true
 	fs.SetInterspersed(true)
@@ -178,12 +154,12 @@ func parseRepoArgs(args []string) (string, string, error) {
 	if repoRoot == "" {
 		repoRoot, err = os.Getwd()
 		if err != nil {
-			return "", "", err
+			return "", "", nil, err
 		}
 	}
 	repoRoot, err = filepath.Abs(repoRoot)
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 
 	cfgPath, _ = fs.GetString("config")
@@ -192,5 +168,19 @@ func parseRepoArgs(args []string) (string, string, error) {
 	} else if !filepath.IsAbs(cfgPath) {
 		cfgPath = filepath.Join(repoRoot, cfgPath)
 	}
-	return repoRoot, cfgPath, nil
+	return repoRoot, cfgPath, fs.Args(), nil
+}
+
+func rootHasCommand(root *cobra.Command, name string) bool {
+	for _, c := range root.Commands() {
+		if c.Name() == name {
+			return true
+		}
+		for _, a := range c.Aliases {
+			if a == name {
+				return true
+			}
+		}
+	}
+	return false
 }

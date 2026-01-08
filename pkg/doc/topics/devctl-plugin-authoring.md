@@ -1,5 +1,5 @@
 ---
-Title: devctl Plugin Authoring Guide (NDJSON Stdio Protocol v1)
+Title: devctl Plugin Authoring Guide (NDJSON Stdio Protocol v2)
 Slug: devctl-plugin-authoring
 Short: A practical playbook for writing, testing, and shipping devctl plugins.
 Topics:
@@ -15,11 +15,20 @@ ShowPerDefault: true
 SectionType: GeneralTopic
 ---
 
-# devctl Plugin Authoring Guide (NDJSON Stdio Protocol v1)
+# devctl Plugin Authoring Guide (NDJSON Stdio Protocol v2)
 
 devctl plugins let you take all the “tribal knowledge” of starting a dev environment—ports, env vars, build steps, prerequisites, and how to launch services—and turn it into a small, versioned, testable program. A plugin is just an executable that speaks a tiny NDJSON protocol over stdin/stdout, so devctl can ask it to compute config, validate prerequisites, run build/prepare steps, and produce a launch plan that devctl supervises.
 
 This guide is a playbook, not just a spec. It explains the protocol, shows the mental model devctl uses when it talks to plugins, and gives you copy/paste examples (plus the patterns you’ll want once people actually rely on your plugin every day).
+
+## 0. Start here (if you're new to devctl)
+
+This document goes deep on the plugin protocol and the patterns that matter once you have multiple plugins, strictness rules, and real users. If you’re new to devctl overall, it’s usually faster to start with the user guide and the scripting guide first, then come back here for the complete protocol and schema details.
+
+```text
+glaze help devctl-user-guide
+glaze help devctl-scripting-guide
+```
 
 ## 1. What a devctl plugin is
 
@@ -52,7 +61,7 @@ def emit(obj):
 
 emit({
     "type": "handshake",
-    "protocol_version": "v1",
+    "protocol_version": "v2",
     "plugin_name": "myrepo",
     "capabilities": {"ops": ["config.mutate", "validate.run", "launch.plan"]},
 })
@@ -198,12 +207,14 @@ The handshake tells devctl who you are and which operations you support.
 ```json
 {
   "type": "handshake",
-  "protocol_version": "v1",
+  "protocol_version": "v2",
   "plugin_name": "example",
   "capabilities": {
     "ops": ["config.mutate", "validate.run", "build.run", "prepare.run", "launch.plan"],
     "streams": ["logs.follow"],
-    "commands": ["db-reset"]
+    "commands": [
+      { "name": "db-reset", "help": "Reset local DB" }
+    ]
   },
   "declares": {
     "side_effects": "process",
@@ -215,12 +226,12 @@ The handshake tells devctl who you are and which operations you support.
 **Fields:**
 
 - `type`: must be `"handshake"`.
-- `protocol_version`: currently `"v1"`.
+- `protocol_version`: currently `"v2"`.
 - `plugin_name`: human-readable name.
 - `capabilities`:
   - `ops`: list of supported request operations (`request.op`).
   - `streams`: optional, for stream-producing ops (see events).
-  - `commands`: optional, for dynamic CLI commands (see `commands.list`).
+  - `commands`: optional, for dynamic CLI commands (devctl wires cobra commands directly from this list; no separate discovery request).
 - `declares`: optional metadata (devctl currently treats this as informational; use it anyway for clarity).
 
 ### 5.2. Request (stdin)
@@ -402,18 +413,19 @@ The launch plan is what devctl turns into processes, logs, health checks, and `d
 - `env`: optional; merged with the parent environment.
 - `health`: optional; `type` is `"tcp"` or `"http"`; use `timeout_ms` for readiness.
 
-### 6.5. `commands.list` / `command.run`: plugin-defined CLI commands
+### 6.5. `command.run`: plugin-defined CLI commands
 
-Plugins can expose custom commands (e.g., `devctl db-reset`) without adding Go code to devctl. devctl asks for the command list and wires cobra subcommands dynamically. This is best used for small “dev chores” that are repo-specific but need to be discoverable and consistent across the team.
+Plugins can expose custom commands (e.g., `devctl db-reset`) without adding Go code to devctl. devctl reads command specs from the handshake and wires cobra subcommands dynamically. This is best used for small “dev chores” that are repo-specific but need to be discoverable and consistent across the team.
 
-`commands.list` response (shape is a convention in this repo; keep it stable within your plugin suite):
+In protocol v2, command specs are advertised in the handshake:
 
 ```json
 {
-  "type": "response",
-  "request_id": "x",
-  "ok": true,
-  "output": {
+  "type": "handshake",
+  "protocol_version": "v2",
+  "plugin_name": "example",
+  "capabilities": {
+    "ops": ["command.run"],
     "commands": [
       { "name": "db-reset", "help": "Reset local DB" }
     ]
@@ -421,7 +433,7 @@ Plugins can expose custom commands (e.g., `devctl db-reset`) without adding Go c
 }
 ```
 
-`command.run` request:
+devctl invokes the command via `command.run`:
 
 ```json
 {
@@ -481,7 +493,7 @@ def log(msg):
 
 emit({
     "type": "handshake",
-    "protocol_version": "v1",
+    "protocol_version": "v2",
     "plugin_name": "example",
     "capabilities": {"ops": ["config.mutate", "validate.run", "launch.plan"]},
 })
@@ -533,7 +545,7 @@ emit() {
 emit_handshake() {
   emit '{
     type: "handshake",
-    protocol_version: "v1",
+    protocol_version: "v2",
     plugin_name: "myrepo",
     capabilities: { ops: ["config.mutate", "validate.run", "launch.plan"] }
   }'

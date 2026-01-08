@@ -2,7 +2,6 @@ package supervise
 
 import (
 	"context"
-	stderrors "errors"
 	"net"
 	"net/http"
 	"os"
@@ -22,6 +21,7 @@ type Options struct {
 	RepoRoot        string
 	ShutdownTimeout time.Duration
 	ReadyTimeout    time.Duration
+	WrapperExe      string
 }
 
 type Supervisor struct {
@@ -113,50 +113,112 @@ func (s *Supervisor) startService(ctx context.Context, svc engine.ServiceSpec) (
 	ts := time.Now().Format("20060102-150405")
 	stdoutPath := filepath.Join(state.LogsDir(s.opts.RepoRoot), svc.Name+"-"+ts+".stdout.log")
 	stderrPath := filepath.Join(state.LogsDir(s.opts.RepoRoot), svc.Name+"-"+ts+".stderr.log")
+	exitInfoPath := filepath.Join(state.LogsDir(s.opts.RepoRoot), svc.Name+"-"+ts+".exit.json")
+	readyPath := filepath.Join(state.LogsDir(s.opts.RepoRoot), svc.Name+"-"+ts+".ready")
 
-	stdoutFile, err := os.OpenFile(stdoutPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return state.ServiceRecord{}, errors.Wrap(err, "open stdout log")
+	if s.opts.WrapperExe == "" {
+		stdoutFile, err := os.OpenFile(stdoutPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			return state.ServiceRecord{}, errors.Wrap(err, "open stdout log")
+		}
+		defer func() { _ = stdoutFile.Close() }()
+
+		stderrFile, err := os.OpenFile(stderrPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			return state.ServiceRecord{}, errors.Wrap(err, "open stderr log")
+		}
+		defer func() { _ = stderrFile.Close() }()
+
+		cmd := exec.CommandContext(ctx, svc.Command[0], svc.Command[1:]...) //nolint:gosec
+		cmd.Dir = cwd
+		cmd.Env = mergeEnv(os.Environ(), svc.Env)
+		cmd.Stdout = stdoutFile
+		cmd.Stderr = stderrFile
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
+		if err := cmd.Start(); err != nil {
+			return state.ServiceRecord{}, errors.Wrap(err, "start service")
+		}
+
+		pid := cmd.Process.Pid
+		startedAt := time.Now()
+		log.Info().Str("service", svc.Name).Int("pid", pid).Msg("service started")
+		go func() { _ = cmd.Wait() }()
+
+		rec := state.ServiceRecord{
+			Name:      svc.Name,
+			PID:       pid,
+			Command:   svc.Command,
+			Cwd:       cwd,
+			Env:       state.SanitizeEnv(svc.Env),
+			StdoutLog: stdoutPath,
+			StderrLog: stderrPath,
+			StartedAt: startedAt,
+		}
+		if svc.Health != nil {
+			rec.HealthType = svc.Health.Type
+			rec.HealthAddress = svc.Health.Address
+			rec.HealthURL = svc.Health.URL
+		}
+		return rec, nil
 	}
-	defer func() { _ = stdoutFile.Close() }()
 
-	stderrFile, err := os.OpenFile(stderrPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return state.ServiceRecord{}, errors.Wrap(err, "open stderr log")
+	args := []string{
+		"__wrap-service",
+		"--service", svc.Name,
+		"--cwd", cwd,
+		"--stdout-log", stdoutPath,
+		"--stderr-log", stderrPath,
+		"--exit-info", exitInfoPath,
+		"--ready-file", readyPath,
 	}
-	defer func() { _ = stderrFile.Close() }()
+	for k, v := range svc.Env {
+		args = append(args, "--env", k+"="+v)
+	}
+	args = append(args, "--")
+	args = append(args, svc.Command...)
 
-	cmd := exec.CommandContext(ctx, svc.Command[0], svc.Command[1:]...)
-	cmd.Dir = cwd
-	cmd.Env = mergeEnv(os.Environ(), svc.Env)
-	cmd.Stdout = stdoutFile
-	cmd.Stderr = stderrFile
+	cmd := exec.Command(s.opts.WrapperExe, args...) //nolint:gosec
+	cmd.Dir = s.opts.RepoRoot
+	cmd.Env = os.Environ()
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	if err := cmd.Start(); err != nil {
-		return state.ServiceRecord{}, errors.Wrap(err, "start service")
+		return state.ServiceRecord{}, errors.Wrap(err, "start wrapper")
 	}
 
 	pid := cmd.Process.Pid
 	log.Info().Str("service", svc.Name).Int("pid", pid).Msg("service started")
-	go func() {
-		err := cmd.Wait()
-		if err != nil {
-			log.Warn().Err(err).Str("service", svc.Name).Int("pid", pid).Msg("service exited")
-		} else {
-			log.Info().Str("service", svc.Name).Int("pid", pid).Msg("service exited")
-		}
-	}()
 
-	return state.ServiceRecord{
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		if _, err := os.Stat(readyPath); err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			_ = terminatePIDGroup(context.Background(), pid, 1*time.Second)
+			return state.ServiceRecord{}, errors.New("wrapper did not report child start")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	rec := state.ServiceRecord{
 		Name:      svc.Name,
 		PID:       pid,
 		Command:   svc.Command,
 		Cwd:       cwd,
-		Env:       svc.Env,
+		Env:       state.SanitizeEnv(svc.Env),
 		StdoutLog: stdoutPath,
 		StderrLog: stderrPath,
-	}, nil
+		ExitInfo:  exitInfoPath,
+		StartedAt: time.Now(),
+	}
+	if svc.Health != nil {
+		rec.HealthType = svc.Health.Type
+		rec.HealthAddress = svc.Health.Address
+		rec.HealthURL = svc.Health.URL
+	}
+	return rec, nil
 }
 
 func mergeEnv(base []string, extra map[string]string) []string {
@@ -269,7 +331,7 @@ func terminatePIDGroup(ctx context.Context, pid int, timeout time.Duration) erro
 	defer t.Stop()
 
 	for {
-		if !processAlive(pid) {
+		if !state.ProcessAlive(pid) {
 			return nil
 		}
 		if time.Now().After(deadline) {
@@ -289,7 +351,7 @@ func terminatePIDGroup(ctx context.Context, pid int, timeout time.Duration) erro
 	}
 
 	killDeadline := time.Now().Add(2 * time.Second)
-	for processAlive(pid) && time.Now().Before(killDeadline) {
+	for state.ProcessAlive(pid) && time.Now().Before(killDeadline) {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -297,22 +359,8 @@ func terminatePIDGroup(ctx context.Context, pid int, timeout time.Duration) erro
 		}
 	}
 
-	if processAlive(pid) {
+	if state.ProcessAlive(pid) {
 		return errors.New("failed to stop service")
 	}
 	return nil
-}
-
-func processAlive(pid int) bool {
-	if pid <= 0 {
-		return false
-	}
-	err := syscall.Kill(pid, 0)
-	if err == nil {
-		return true
-	}
-	if stderrors.Is(err, syscall.EPERM) {
-		return true
-	}
-	return false
 }

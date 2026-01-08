@@ -17,6 +17,8 @@ RelatedFiles:
       Note: Reference Watermill handler that decodes envelopes and injects tea.Msg via Program.Send
     - Path: devctl/cmd/devctl/cmds/logs.go
       Note: Reference implementation of followFile for log-follow behavior
+    - Path: devctl/cmd/devctl/cmds/tui.go
+      Note: Entry point wiring bus
     - Path: devctl/cmd/devctl/cmds/up.go
       Note: Reference orchestration sequence for pipeline + supervise + state.Save
     - Path: devctl/pkg/engine/pipeline.go
@@ -27,6 +29,12 @@ RelatedFiles:
       Note: Persisted state.json schema + ProcessAlive used for dashboard
     - Path: devctl/pkg/supervise/supervisor.go
       Note: Process supervision and log file creation
+    - Path: devctl/pkg/tui/bus.go
+      Note: Concrete implementation of the in-memory Watermill bus pattern
+    - Path: devctl/pkg/tui/forward.go
+      Note: Concrete UI forwarder injecting tea.Msg via Program.Send
+    - Path: devctl/pkg/tui/transform.go
+      Note: Concrete domain→UI transformer (envelopes/topics)
     - Path: pinocchio/cmd/agents/simple-chat-agent/INTEGRATING-BUBBLETEA-LIPGLOSS.md
       Note: Channel-based alternative for forwarding events into Bubble Tea
     - Path: pinocchio/pkg/ui/backend.go
@@ -39,6 +47,7 @@ LastUpdated: 2026-01-06T15:28:33.171299581-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

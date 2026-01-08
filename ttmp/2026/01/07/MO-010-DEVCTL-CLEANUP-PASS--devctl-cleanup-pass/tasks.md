@@ -1,0 +1,93 @@
+# Tasks
+
+## TODO
+
+- [x] Protocol v2 cleanup pass: remove commands.list, add handshake command specs, enforce capabilities, and remove invocation-helper concept
+
+- [x] Scrub MO-010 docs to remove invocation-helper layer references
+- [x] Protocol: add v2 handshake + structured capabilities.commands (CommandSpec/CommandArg) + validation
+- [x] Runtime: enforce capabilities in Client.Call/StartStream (fast E_UNSUPPORTED) and expose typed op errors
+- [x] Runtime: remove context.Value request metadata (delete runtime/context.go) and plumb explicit request meta into requests
+- [x] Repository container: centralize repo root/config/plugin discovery + request meta; integrate into CLI and TUI bootstraps
+- [x] Dynamic commands: wire Cobra commands from handshake command specs; remove commands.list and provider re-discovery
+- [x] CLI: update devctl plugins list output for structured handshake commands
+- [x] Docs: update plugin authoring guides to protocol v2 (handshake command specs; remove commands.list)
+- [x] Plugins: update in-repo examples + testdata plugins to protocol v2 and handshake-advertised commands
+- [x] Tests: update for v2 + add coverage for unsupported fast-fail and dynamic discovery (no commands.list)
+- [x] Validation: gofmt/go test; update diary + changelog; commit code and docs
+- [x] [RealWorld/Build] cd devctl && go run ./cmd/devctl --help (binary starts, no panic)
+- [x] [RealWorld/Build] cd devctl && go run ./cmd/devctl --version (prints version)
+- [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest (protocol handshake + ping)
+- [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-failures (validate fail, launch fail, plugin timeout)
+- [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-logs (follow + cancel promptness)
+- [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-supervise (http-service plugin + GET)
+- [x] [RealWorld/Smoke] cd devctl && go run ./cmd/devctl smoketest-e2e (build testapps; up/status/logs/down)
+- [x] [RealWorld/Plugins] cd devctl && go run ./cmd/devctl --config .devctl.example.yaml plugins list (protocol_version shows v2)
+- [x] [RealWorld/Dynamic] Create temp repo with testdata/plugins/command; run devctl echo hello (dynamic command wired from handshake)
+- [x] [RealWorld/Dynamic] Dynamic command collision: two command plugins both advertise echo; confirm warning and command still runs
+- [x] [RealWorld/Dynamic] Dynamic commands should not exist when plugin lacks command.run (create temp plugin that advertises commands only; confirm no cobra subcommand)
+- [x] [RealWorld/Strict] Service collision strictness: configure two pipeline plugins (same service name demo); plan should error when strict=true and last-wins when strict=false
+- [x] [RealWorld/Strict] Config collision strictness: configure two pipeline plugins that set same config key; verify strictness behavior (warn vs error)
+- [x] [RealWorld/Protocol] Negative: v1 handshake rejected (create temp v1 plugin; devctl plugins list should fail with E_PROTOCOL_INVALID_HANDSHAKE)
+- [x] [RealWorld/Runtime] Negative: noisy-handshake plugin (non-JSON before handshake) causes plugins list failure
+- [x] [RealWorld/Runtime] Negative: noisy-after-handshake plugin causes a call to fail (cd devctl && go run ./cmd/devctl smoketest --plugin ./testdata/plugins/noisy-after-handshake/plugin.py)
+- [x] [RealWorld/Meta] Verify request ctx repo_root/cwd/dry_run correctness by using a temp plugin that logs request.ctx to stderr
+- [x] [Fixture/MO-006] Run ttmp/2026/01/06/MO-006-DEVCTL-TUI--create-a-devctl-tui/scripts/setup-fixture-repo-root.sh to create REPO_ROOT
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl plan (returns 2+ services; no errors)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl up (starts services; state.json created)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl status --tail-lines 25 (services alive true; includes stdout/stderr paths)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl logs --service http (stdout non-empty)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl logs --service http --stderr (stderr non-empty)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl logs --service spewer --follow and cancel (ctrl+c) without delay
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl down (stops; removes state.json)
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl status after down should fail with missing state
+- [x] [Fixture/MO-006] On MO-006 fixture: devctl up --dry-run prints JSON and does not create state
+- [x] [Fixture/MO-009] Run ttmp/2026/01/06/MO-009-TUI-COMPLETE-FEATURES--complete-tui-features-per-mo-006-design/scripts/setup-comprehensive-fixture.sh to create REPO_ROOT
+- [x] [Fixture/MO-009] On comprehensive fixture: devctl up succeeds (regression: no wrapper did not report child start)
+- [x] [Fixture/MO-009] On comprehensive fixture: devctl status shows all services and exit info once short-lived exits
+- [x] [Fixture/MO-009] On comprehensive fixture: devctl logs (stdout+stderr) for each service (backend, worker, log-producer, flaky, short-lived)
+- [x] [Fixture/MO-009] On comprehensive fixture: devctl down works and removes state
+- [x] [WrapService] Directly run __wrap-service with a trivial command; verify ready-file written and exit-info JSON created
+- [x] [TUI/Tmux] Create tmux session with 2 panes: left runs devctl tui; right runs devctl up/down/logs for the same repo-root
+- [x] [TUI/Tmux] Use tmux capture-pane to save TUI output and errors during testing
+- [x] [TUI/Global] Start TUI with --alt-screen=false for capture; verify q quits and ? toggles help
+- [x] [TUI/Global] Verify tab cycles views Dashboard -> Events -> Pipeline -> Plugins (and back)
+- [x] [TUI/Dashboard] With no state, dashboard shows stopped view; press u triggers ActionUp and pipeline events
+- [x] [TUI/Dashboard] After up, verify services list shows PIDs and running status; j/k selection; enter/l opens service detail
+- [x] [TUI/Dashboard] Test down confirmation (d then y) stops services and returns to stopped state
+- [x] [TUI/Dashboard] Test restart confirmation (r then y) performs down+up and shows pipeline phases
+- [x] [TUI/Dashboard] Test kill flow (x then n cancels; x then y sends SIGTERM); verify service transitions to dead
+- [x] [TUI/Service] In service detail: tab toggles stdout/stderr; f toggles follow; / applies text filter; ctrl+l clears; d detaches
+- [x] [TUI/Events] In events view: / filter; ctrl+l clear; c clears buffer; p pause/unpause; l opens level menu (d/i/w/e toggles; a all; n none)
+- [x] [TUI/Events] In events view: toggle system events with space; toggle numbered service filters 1-9
+- [x] [TUI/Pipeline] In pipeline view: b/p/v focuses build/prepare/validate; o toggles live output viewport; j/k navigates; enter toggles details
+- [x] [TUI/Plugins] In plugins view: j/k navigates; enter/i toggles expand; a expands all; A collapses all; esc returns
+- [x] [CLI/Flags] Validate --timeout 0 is rejected (any command using root flags)
+- [x] [CLI/Flags] Validate --config relative path is resolved under --repo-root
+- [x] [CLI/Flags] Validate --repo-root default (run from inside fixture repo without --repo-root)
+- [x] [CLI/Config] No config file present: devctl plan outputs {} and devctl up errors with no plugins configured
+- [x] [CLI/Config] Invalid YAML in .devctl.yaml returns a parse error
+- [x] [CLI/Strict] Config strictness=error enforces strict mode even without --strict
+- [x] [CLI/Down] devctl down when no state exists returns an actionable error
+- [x] [CLI/Status] devctl status when no state exists returns an actionable error
+- [x] [CLI/Logs] devctl logs without --service errors (--service is required)
+- [x] [CLI/Logs] devctl logs with unknown --service errors (unknown service)
+- [x] [CLI/Logs] devctl logs --follow stops promptly on ctrl+c (manual, not just smoketest)
+- [x] [CLI/Protocol] Handshake validation: duplicate capabilities.commands names should fail plugin start
+- [x] [CLI/Protocol] Handshake validation: capabilities.commands entry missing name should fail plugin start
+- [x] [CLI/Protocol] Handshake validation: capabilities.commands args_spec entry missing name/type should fail plugin start
+- [x] [CLI/Runtime] Multi-plugin start failure: config with ok-python + noisy-handshake should ensure ok-python is terminated after failure
+- [x] [CLI/Dynamic] Ensure AddDynamicPluginCommands only registers commands from plugins that support command.run
+- [x] [CLI/Dynamic] Ensure dynamic command execution respects --dry-run flag (verify plugin sees ctx.dry_run via temp plugin)
+- [x] [CLI/Dynamic] Ensure dynamic command execution respects --timeout (use command plugin modified to sleep; expect timeout error)
+- [x] [Regression/Wrap] Stress dynamic discovery before wrapper: config with many plugins (e.g. 20x command plugin) should not cause supervise wrapper deadline failures
+- [x] [Regression/Wrap] Stress dynamic discovery with slow handshakes (create temp plugin that sleeps before handshake); confirm impact and decide if dynamic discovery must be skipped for __wrap-service
+- [x] [TUI/Global] Start TUI with --refresh 100ms and verify state changes propagate quickly (no UI corruption)
+- [x] [TUI/Global] Start TUI with --alt-screen=true and verify terminal resets cleanly on exit
+- [x] [TUI/Help] Toggle help with ? across all views; verify keybindings shown match behavior
+- [x] [TUI/Events] Verify p pause/unpause keeps a bounded paused queue and does not OOM under high event rates
+- [x] [TUI/Events] Verify l level menu can be opened/closed with esc/enter/l (no stuck modal)
+- [x] [TUI/Events] Verify c clear resets counts and viewport content
+- [x] [TUI/Dashboard] Verify pressing u when state exists triggers restart confirmation (not a second up)
+- [x] [TUI/Dashboard] Verify dashboard kill uses SIGTERM and logs success/failure events
+- [x] [TUI/Service] Verify service view shows exit info after a service dies (if exit info file exists)

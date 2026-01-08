@@ -1,16 +1,18 @@
 package cmds
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"time"
 
-	"github.com/go-go-golems/devctl/pkg/config"
-	"github.com/go-go-golems/devctl/pkg/discovery"
 	"github.com/go-go-golems/devctl/pkg/engine"
 	"github.com/go-go-golems/devctl/pkg/patch"
+	"github.com/go-go-golems/devctl/pkg/repository"
 	"github.com/go-go-golems/devctl/pkg/runtime"
 	"github.com/go-go-golems/devctl/pkg/state"
 	"github.com/go-go-golems/devctl/pkg/supervise"
@@ -39,54 +41,71 @@ func newUpCmd() *cobra.Command {
 			if !opts.DryRun {
 				if _, err := os.Stat(state.StatePath(opts.RepoRoot)); err == nil {
 					if !force {
-						return errors.New("state exists; run devctl down first or use --force")
-					}
-					log.Info().Msg("existing state found; stopping first (--force)")
-					if err := stopFromState(cmd.Context(), opts); err != nil {
-						return err
+						aliveCount, err := countAliveFromState(opts.RepoRoot)
+						if err != nil {
+							return err
+						}
+
+						prompt := "state exists; run devctl down first or use --force"
+						if aliveCount == 0 {
+							prompt = "state exists but no services appear alive; remove state and continue? (y/N): "
+						} else {
+							prompt = "state exists; restart (down then up)? (y/N): "
+						}
+
+						if isInteractive(cmd.InOrStdin()) {
+							ok, err := promptConfirm(cmd.ErrOrStderr(), cmd.InOrStdin(), prompt)
+							if err != nil {
+								return err
+							}
+							if !ok {
+								return errors.New("aborted")
+							}
+							log.Info().Msg("existing state found; stopping first (confirmed)")
+							if err := stopFromState(cmd.Context(), opts); err != nil {
+								return err
+							}
+						} else {
+							return errors.New("state exists; run devctl down first or use --force")
+						}
+					} else {
+						log.Info().Msg("existing state found; stopping first (--force)")
+						if err := stopFromState(cmd.Context(), opts); err != nil {
+							return err
+						}
 					}
 				}
 			}
 
-			cfg, err := config.LoadOptional(opts.Config)
+			meta, err := requestMetaFromRootOptions(opts)
 			if err != nil {
 				return err
 			}
-			if !opts.Strict && cfg.Strictness == "error" {
+			repo, err := repository.Load(repository.Options{RepoRoot: opts.RepoRoot, ConfigPath: opts.Config, Cwd: meta.Cwd, DryRun: opts.DryRun})
+			if err != nil {
+				return err
+			}
+			if !opts.Strict && repo.Config.Strictness == "error" {
 				opts.Strict = true
 			}
-
-			specs, err := discovery.Discover(cfg, discovery.Options{RepoRoot: opts.RepoRoot})
-			if err != nil {
-				return err
-			}
-			if len(specs) == 0 {
+			if len(repo.Specs) == 0 {
 				return errors.New("no plugins configured (add .devctl.yaml)")
 			}
 
-			ctx := withPluginRequestContext(cmd.Context(), opts)
+			ctx := cmd.Context()
 			factory := runtime.NewFactory(runtime.FactoryOptions{
 				HandshakeTimeout: 2 * time.Second,
 				ShutdownTimeout:  3 * time.Second,
 			})
 
-			clients := make([]runtime.Client, 0, len(specs))
-			for _, spec := range specs {
-				c, err := factory.Start(ctx, spec)
-				if err != nil {
-					for _, cc := range clients {
-						_ = cc.Close(ctx)
-					}
-					return err
-				}
-				clients = append(clients, c)
+			clients, err := repo.StartClients(ctx, factory)
+			if err != nil {
+				return err
 			}
 			defer func() {
 				closeCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 				defer cancel()
-				for _, c := range clients {
-					_ = c.Close(closeCtx)
-				}
+				_ = repository.CloseClients(closeCtx, clients)
 			}()
 
 			p := &engine.Pipeline{
@@ -161,7 +180,12 @@ func newUpCmd() *cobra.Command {
 				return nil
 			}
 
-			sup := supervise.New(supervise.Options{RepoRoot: opts.RepoRoot, ReadyTimeout: opts.Timeout})
+			wrapperExe, _ := os.Executable()
+			sup := supervise.New(supervise.Options{
+				RepoRoot:     opts.RepoRoot,
+				ReadyTimeout: opts.Timeout,
+				WrapperExe:   wrapperExe,
+			})
 			st, err := sup.Start(ctx, plan)
 			if err != nil {
 				return err
@@ -191,9 +215,58 @@ func stopFromState(ctx context.Context, opts rootOptions) error {
 	if err != nil {
 		return err
 	}
-	sup := supervise.New(supervise.Options{RepoRoot: opts.RepoRoot, ReadyTimeout: opts.Timeout})
+	wrapperExe, _ := os.Executable()
+	sup := supervise.New(supervise.Options{
+		RepoRoot:     opts.RepoRoot,
+		ReadyTimeout: opts.Timeout,
+		WrapperExe:   wrapperExe,
+	})
 	stopCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
 	_ = sup.Stop(stopCtx, st)
 	return state.Remove(opts.RepoRoot)
+}
+
+func isInteractive(r io.Reader) bool {
+	f, ok := r.(*os.File)
+	if !ok {
+		return false
+	}
+	st, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return st.Mode()&os.ModeCharDevice != 0
+}
+
+func promptConfirm(out io.Writer, in io.Reader, prompt string) (bool, error) {
+	if _, err := fmt.Fprint(out, prompt); err != nil {
+		return false, err
+	}
+
+	br := bufio.NewReader(in)
+	line, err := br.ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return false, err
+	}
+
+	line = strings.TrimSpace(strings.ToLower(line))
+	if line == "y" || line == "yes" {
+		return true, nil
+	}
+	return false, nil
+}
+
+func countAliveFromState(repoRoot string) (int, error) {
+	st, err := state.Load(repoRoot)
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, svc := range st.Services {
+		if state.ProcessAlive(svc.PID) {
+			n++
+		}
+	}
+	return n, nil
 }

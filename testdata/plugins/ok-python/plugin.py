@@ -8,7 +8,7 @@ def emit(obj):
 
 emit({
     "type": "handshake",
-    "protocol_version": "v1",
+    "protocol_version": "v2",
     "plugin_name": "ok-python",
     "capabilities": {"ops": ["ping"]},
     "declares": {"side_effects": "none", "idempotent": True},
@@ -26,4 +26,3 @@ for line in sys.stdin:
         emit({"type": "response", "request_id": rid, "ok": True, "output": {"pong": True}})
     else:
         emit({"type": "response", "request_id": rid, "ok": False, "error": {"code": "E_UNSUPPORTED", "message": "unsupported op"}})
-
