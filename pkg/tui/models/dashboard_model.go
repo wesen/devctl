@@ -210,7 +210,7 @@ func (m DashboardModel) View() string {
 		return m.renderError(theme, s.Error)
 	}
 	if s.State == nil {
-		return theme.TitleMuted.Render("System: Unknown (state missing)")
+		return theme.TitleMuted.Render("System: Stopped (state missing)")
 	}
 
 	// Build services table with Health, CPU, MEM columns
@@ -655,7 +655,6 @@ func truncateString(s string, maxLen int) string {
 	}
 	return s[:maxLen-3] + "..."
 }
-
 
 func (m DashboardModel) selectedServiceName() string {
 	names := m.serviceNames()

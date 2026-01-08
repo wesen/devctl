@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"time"
 
@@ -62,6 +63,17 @@ func (c *StatusCommand) RunIntoWriter(ctx context.Context, parsedLayers *layers.
 
 	st, err := state.Load(rc.RepoRoot)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) || errors.Is(err, fs.ErrNotExist) {
+			b, err := json.MarshalIndent(map[string]any{
+				"exists":   false,
+				"services": []svc{},
+			}, "", "  ")
+			if err != nil {
+				return errors.Wrap(err, "marshal status")
+			}
+			_, _ = fmt.Fprintln(w, string(b))
+			return nil
+		}
 		return err
 	}
 
@@ -121,7 +133,10 @@ func (c *StatusCommand) RunIntoWriter(ctx context.Context, parsedLayers *layers.
 		})
 	}
 
-	b, err := json.MarshalIndent(map[string]any{"services": services}, "", "  ")
+	b, err := json.MarshalIndent(map[string]any{
+		"exists":   true,
+		"services": services,
+	}, "", "  ")
 	if err != nil {
 		return errors.Wrap(err, "marshal status")
 	}
