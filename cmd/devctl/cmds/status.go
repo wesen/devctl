@@ -61,6 +61,14 @@ func (c *StatusCommand) RunIntoWriter(ctx context.Context, parsedLayers *layers.
 		return err
 	}
 
+	type svc struct {
+		Name   string          `json:"name"`
+		PID    int             `json:"pid"`
+		Alive  bool            `json:"alive"`
+		Stdout string          `json:"stdout_log"`
+		Stderr string          `json:"stderr_log"`
+		Exit   *state.ExitInfo `json:"exit,omitempty"`
+	}
 	st, err := state.Load(rc.RepoRoot)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) || errors.Is(err, fs.ErrNotExist) {
@@ -75,15 +83,6 @@ func (c *StatusCommand) RunIntoWriter(ctx context.Context, parsedLayers *layers.
 			return nil
 		}
 		return err
-	}
-
-	type svc struct {
-		Name   string          `json:"name"`
-		PID    int             `json:"pid"`
-		Alive  bool            `json:"alive"`
-		Stdout string          `json:"stdout_log"`
-		Stderr string          `json:"stderr_log"`
-		Exit   *state.ExitInfo `json:"exit,omitempty"`
 	}
 	var services []svc
 
