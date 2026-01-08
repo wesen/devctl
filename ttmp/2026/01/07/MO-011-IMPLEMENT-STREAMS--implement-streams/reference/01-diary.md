@@ -194,6 +194,47 @@ The key outcome is a concrete safety net: runtime tests now cover both “teleme
 - Commands run:
   - `cd devctl && go test ./...`
 
+## Step 8: Add an end-to-end stream validation playbook (TUI + CLI)
+
+This step created a repeatable “e2e-ish” manual validation procedure so future stream changes can be verified quickly without re-deriving setup steps. The playbook intentionally uses only fixture plugins (`telemetry.stream` and `logs.follow`) and a temporary repo root, so it works on any machine without needing a real repo plugin.
+
+The key outcome is a single, copy/paste document that validates: stream start works, events render in the Streams view, stopping a long-running stream triggers cleanup, and the same stream can be exercised via `devctl stream start`.
+
+### What I did
+- Added a ticket playbook: `playbook/01-streams-tui-cli-validation-playbook.md`.
+- Documented:
+  - creating a temporary repo root with a `.devctl.yaml` that references fixture plugins by absolute path,
+  - starting `devctl tui` and using the Streams view JSON prompt,
+  - running `devctl stream start` in both human and JSON modes.
+
+### Why
+- Streams cross multiple layers (runtime, runner, transformer/forwarder, UI); manual validation is valuable even with unit tests.
+- A playbook prevents “tribal knowledge” regressions, especially around stop/cleanup behavior.
+
+### What worked
+- Using `mktemp -d` + a minimal `.devctl.yaml` keeps the procedure isolated and repeatable.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The long-running `logs.follow` fixture is a better cleanup test than a finite telemetry stream, because stop behavior is observable immediately.
+
+### What was tricky to build
+- Being explicit about “run from devctl repo root” vs “repo_root passed to devctl” matters for relative paths; the playbook uses absolute plugin script paths to avoid ambiguity.
+
+### What warrants a second pair of eyes
+- Confirm the stop/ended semantics described in the playbook match the intended UI behavior (currently stop is treated as not-ok).
+
+### What should be done in the future
+- If we add protocol-level stop semantics, update the playbook to validate “stop without killing other streams” and to confirm client reuse.
+
+### Code review instructions
+- Review `devctl/ttmp/2026/01/07/MO-011-IMPLEMENT-STREAMS--implement-streams/playbook/01-streams-tui-cli-validation-playbook.md` for correctness and clarity.
+
+### Technical details
+- No code changes in this step; playbook is intended for manual execution.
+
 ## Step 7: Implement `devctl stream start` CLI (stream debugging harness)
 
 This step added a dedicated CLI surface for streams so we can start a stream op and observe `protocol.Event` frames without the TUI. This is both a real feature (for power users / scripting) and a practical debugging tool for plugin authors: it makes it easy to test “does my stream start quickly, does it emit events, does it end cleanly?” without needing to wire a full UI.

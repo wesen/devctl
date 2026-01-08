@@ -14,6 +14,6 @@
 - [x] Implement devctl stream CLI (start op, parse input-json/file, print events, handle ctrl+c, enforce SupportsOp)
 - [x] Add a telemetry stream fixture plugin under devctl/testdata/plugins (telemetry.stream) for repeatable manual and automated validation
 - [x] Add negative fixture coverage: plugin advertises capabilities.streams only and never responds; verify runner/CLI fail fast (no hangs)
-- [ ] Add TUI e2e-ish validation playbook: start telemetry stream, render events, stop stream, ensure plugin process cleaned up
+- [x] Add TUI e2e-ish validation playbook: start telemetry stream, render events, stop stream, ensure plugin process cleaned up
 - [x] Decide first UI integration target: Events log vs new Streams view vs Service view logs.follow; implement the chosen rendering path
 - [ ] Optional: introduce protocol-level stream stop semantics (stream.stop or op-specific stop) to enable client reuse and avoid one-client-per-stream

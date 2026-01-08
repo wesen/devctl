@@ -94,3 +94,12 @@ Step 7: Added devctl stream start CLI for starting streams and printing events (
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/root.go — Registers stream command
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/stream.go — New stream CLI (provider selection
 
+
+## 2026-01-07
+
+Step 8: Added a Streams TUI+CLI validation playbook (task 12).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/07/MO-011-IMPLEMENT-STREAMS--implement-streams/playbook/01-streams-tui-cli-validation-playbook.md — Copy/paste manual validation procedure for streams
+
