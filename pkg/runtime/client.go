@@ -131,7 +131,9 @@ func (c *client) Call(ctx context.Context, op string, input any, output any) err
 }
 
 func (c *client) StartStream(ctx context.Context, op string, input any) (string, <-chan protocol.Event, error) {
-	if !contains(c.hs.Capabilities.Ops, op) && !contains(c.hs.Capabilities.Streams, op) {
+	// Stream start is still a request op; treat capabilities.ops as the authoritative allowlist
+	// to avoid hanging on "streams-only" declarations from misbehaving plugins.
+	if !contains(c.hs.Capabilities.Ops, op) {
 		return "", nil, &OpError{
 			PluginID: c.spec.ID,
 			Op:       op,

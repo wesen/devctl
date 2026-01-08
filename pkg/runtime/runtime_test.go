@@ -212,3 +212,36 @@ func TestRuntime_CallUnsupportedFailsFast(t *testing.T) {
 	require.Equal(t, "t", opErr.PluginID)
 	require.Equal(t, "E_UNSUPPORTED", opErr.Code)
 }
+
+func TestRuntime_StartStreamUnsupportedFailsFast(t *testing.T) {
+	repoRoot, err := os.Getwd()
+	require.NoError(t, err)
+	plugin := filepath.Join(repoRoot, "..", "..", "testdata", "plugins", "ignore-unknown", "plugin.py")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	f := NewFactory(FactoryOptions{HandshakeTimeout: 2 * time.Second, ShutdownTimeout: 2 * time.Second})
+	c, err := f.Start(ctx, PluginSpec{
+		ID:      "t",
+		Path:    "python3",
+		Args:    []string{plugin},
+		WorkDir: repoRoot,
+	}, StartOptions{})
+	require.NoError(t, err)
+	defer func() { _ = c.Close(context.Background()) }()
+
+	callCtx, callCancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer callCancel()
+
+	_, _, err = c.StartStream(callCtx, "unknown.op", map[string]any{})
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrUnsupported))
+	require.False(t, errors.Is(err, context.DeadlineExceeded))
+
+	var opErr *OpError
+	require.True(t, errors.As(err, &opErr))
+	require.Equal(t, "unknown.op", opErr.Op)
+	require.Equal(t, "t", opErr.PluginID)
+	require.Equal(t, "E_UNSUPPORTED", opErr.Code)
+}
