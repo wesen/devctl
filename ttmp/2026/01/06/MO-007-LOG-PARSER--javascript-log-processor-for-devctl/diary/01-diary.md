@@ -1035,3 +1035,58 @@ This step intentionally keeps multiline semantics deterministic and single-threa
 - `log.createMultilineBuffer` returns `{ add(line), flush() }`:
   - `add(line)` returns `null` while accumulating and returns a joined `"\n"` string when it decides a record is complete.
   - `timeout` parsing supports `ms|s|m|h` and only triggers on the next `add(...)` call (no background timer).
+
+## Step 16: Investigate Long-Term Documentation Candidates for Log-Parse
+
+Reviewed MO-007 and related ticket docs to identify what should migrate out of `ttmp/` into durable documentation. The goal was to inventory long-term design/playbook material and outline missing docs needed to help teams adopt and integrate the log-parser feature.
+
+This step produced a new analysis document that lists migration candidates (design docs, playbook, sandboxing analysis) and outlines a focused set of future docs based on the feature surface documented in the diary and `git log --stat`.
+
+**Commit (code):** N/A (documentation analysis only)
+
+### What I did
+- Listed ticket docs for MO-007 and MO-008 with `docmgr doc list`.
+- Reviewed MO-007 design docs, playbook, and diary for long-term doc candidates.
+- Reviewed MO-008 sandboxing design doc for security guidance to preserve.
+- Checked `git log --stat -- cmd/log-parse pkg/logjs` to confirm the implemented feature surface.
+- Created `analysis/01-long-term-documentation-investigation.md` and related key sources.
+
+### Why
+- Long-term docs in `ttmp/` are hard to discover; migrating them to `docs/` improves onboarding and future maintenance.
+- The log-parser feature has grown beyond MVP; the current doc set lacks user-facing references for CLI usage and integration.
+
+### What worked
+- docmgr listing made it clear which docs already declare long-term intent.
+- The diary and git history provided a reliable map of current functionality to backfill into documentation.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The most valuable existing docs to migrate are the MVP design, fan-out design, roadmap, testing playbook, and require() sandboxing analysis.
+- The current documentation gap is primarily user-facing: CLI reference, JS API contract, helpers, schemas, and integration guidance.
+
+### What was tricky to build
+- Distinguishing “long-term architectural guidance” from ticket-local artifacts (diary, source imports) so we don’t over-migrate.
+
+### What warrants a second pair of eyes
+- Confirm the proposed migration targets and directory layout for long-term docs (`docs/log-parser/` vs `docs/architecture/log-parser/`).
+- Validate that the proposed new docs list aligns with current team onboarding and devctl integration priorities.
+
+### What should be done in the future
+- Execute the migration of the identified docs into `docs/` and update references in the repo.
+- Draft the highest-priority missing docs: CLI reference, JS module API, event/error schema.
+
+### Code review instructions
+- Review the analysis doc:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/analysis/01-long-term-documentation-investigation.md`
+- Spot-check the referenced sources:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/01-mvp-design-javascript-log-parser-goja.md`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-008-REQUIRE-SANDBOX--sandbox-goja-nodejs-require-for-log-parse/design-doc/02-analysis-sandboxing-goja-nodejs-require.md`
+
+### Technical details
+- Investigated docs under:
+  - `ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/`
+  - `ttmp/2026/01/06/MO-008-REQUIRE-SANDBOX--sandbox-goja-nodejs-require-for-log-parse/`
+- Git history inspected:
+  - `git log --stat -- cmd/log-parse pkg/logjs`

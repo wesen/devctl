@@ -94,3 +94,21 @@ Implement multiline helper (createMultilineBuffer), add many-module fan-out exam
 - /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/helpers.go — Multiline helper
 - /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/04-run-fanout-modules-dir-demo.sh — Demo script
 
+
+## 2026-01-08
+
+Added analysis of long-term documentation migration candidates and missing log-parser docs
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/analysis/01-long-term-documentation-investigation.md — Summarizes migration targets and missing docs
+
+
+## 2026-01-08
+
+Created comprehensive log-parse developer guide covering module API, helper functions, fan-out pipeline, CLI reference, Go integration, real-world patterns, and troubleshooting
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/doc/topics/log-parse-guide.md — Comprehensive developer guide (14 sections
+
