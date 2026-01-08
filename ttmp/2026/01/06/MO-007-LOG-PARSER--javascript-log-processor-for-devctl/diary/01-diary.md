@@ -9,23 +9,84 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: devctl/cmd/log-parse/main.go
-      Note: Standalone MVP binary implemented in Step 6 (commit 9b86bc031454347e03d78b237e817c735dd50392)
+      Note: |-
+        Standalone MVP binary implemented in Step 6 (commit 9b86bc031454347e03d78b237e817c735dd50392)
+        CLI now loads many modules
+        Step 14 adds --errors NDJSON output and handles multi-event returns
+    - Path: devctl/examples/log-parse/README.md
+      Note: |-
+        Updated example commands to use --module
+        Step 15 documents modules-dir demo
+    - Path: devctl/examples/log-parse/modules/01-errors.js
+      Note: Step 15 many-module fan-out example (errors)
+    - Path: devctl/examples/log-parse/parser-regex.js
+      Note: Fixed example to avoid goja RegExp named capture groups so scripts remain runnable
+    - Path: devctl/examples/log-parse/sample-fanout-json-lines.txt
+      Note: Step 15 sample input for many-module demo
+    - Path: devctl/pkg/logjs/fanout.go
+      Note: |-
+        Fan-out runner that executes multiple modules per input line and injects tags
+        Step 14 aggregates module error records and emits multiple events per line
+    - Path: devctl/pkg/logjs/fanout_test.go
+      Note: Tests for tagging
+    - Path: devctl/pkg/logjs/helpers.go
+      Note: |-
+        Step 14 expands stdlib helper surface (parseKeyValue/capture/getPath/addTag/toNumber/etc.)
+        Step 15 adds log.createMultilineBuffer helper
     - Path: devctl/pkg/logjs/module.go
-      Note: Implemented in Step 6 (commit 9b86bc031454347e03d78b237e817c735dd50392)
+      Note: |-
+        Implemented in Step 6 (commit 9b86bc031454347e03d78b237e817c735dd50392)
+        Add module tag support + metadata needed for pipeline introspection
+        Step 14 adds multi-event returns
+    - Path: devctl/pkg/logjs/module_test.go
+      Note: |-
+        Step 14 adds tests for array returns and error records
+        Step 15 adds multiline buffer test
+    - Path: devctl/pkg/logjs/types.go
+      Note: |-
+        Add ModuleInfo type used by CLI pipeline printing
+        Step 14 adds ErrorRecord type
     - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/01-mvp-design-javascript-log-parser-goja.md
-      Note: Primary design doc produced during diary steps
+      Note: |-
+        Primary design doc produced during diary steps
+        Updated MVP CLI flag docs to --module
     - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/02-next-step-design-multi-script-pipeline-for-log-parse.md
-      Note: Drafted in Step 10 to define multi-script pipeline evolution
+      Note: |-
+        Drafted in Step 10 to define multi-script pipeline evolution
+        Updated design to emphasize self-contained modules emitting tagged derived streams
+    - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/03-roadmap-design-from-fan-out-log-parse-to-logflow-ish-system.md
+      Note: Step 12 produced this roadmap design
     - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/index.md
       Note: Ticket overview and navigation
+    - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/playbook/01-playbook-log-parse-mvp-testing.md
+      Note: Updated testing playbook commands to use --module
     - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/reference/01-source-notes-provided-spec-trimmed-for-mvp.md
       Note: MVP scope trimming decisions captured here
+    - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/02-run-examples.sh
+      Note: Updated to use --module flag
+    - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/03-timeout-demo.sh
+      Note: Updated to use --module flag
+    - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/04-run-fanout-modules-dir-demo.sh
+      Note: Step 15 runnable demo script
+    - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/05-validate-fanout-modules-dir.sh
+      Note: Step 15 validation script
+    - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/sources/local/js-log-parser-spec.md
+      Note: Step 12 input spec studied for roadmap
+    - Path: devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/tasks.md
+      Note: |-
+        Added tasks for multi-module build/test scripts
+        Step 12 new tasks added
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-06T19:27:06-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
+
+
+
 
 
 
@@ -615,3 +676,362 @@ This design intentionally does *not* enable JavaScript `require()` yet; composit
 
 ### Technical details
 - The design explicitly defers `require()` to `MO-008-REQUIRE-SANDBOX` to avoid accidentally expanding filesystem capabilities.
+
+## Step 11: Rethink Multi-Module Semantics (Self-Contained Tagged Streams) + Fix goja RegExp Example
+
+Reworked the “next step” design to match the intended operator model: each `register()` module is **self-contained**, runs against the same input stream, and emits its own **tagged derived event stream**. This removes accidental coupling implied by a stage/pipeline mental model and makes it explicit that downstream merging is up to the user.
+
+While validating the ticket scripts, the regex example failed under goja due to unsupported RegExp features. I fixed the example to avoid named capture groups and verified the scripts and Go tests pass again.
+
+**Commit (code):** N/A (this workspace has no `.git` directory, so I could not produce a commit hash)
+
+### What I did
+- Updated the multi-module design doc to clarify fan-out semantics (“one input stream, many tagged outputs”) and to make “one runtime per module” the explicit default for isolation.
+- Added `docmgr` tasks for multi-module build/test scripts.
+- Ran the existing ticket scripts:
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/02-run-examples.sh`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/01-go-test.sh`
+- Fixed `devctl/examples/log-parse/parser-regex.js`:
+  - removed JS named capture groups (`(?<name>...)`), which goja’s RegExp does not support
+  - used positional capture groups via `.exec()` instead
+
+### Why
+- The real usage is typically “one log format in, many derived views out”; enforcing self-contained modules + explicit tags makes the system easier to reason about and reduces hidden coupling.
+- Keeping modules isolated (no shared runtime) aligns with the “no `require()` yet” posture and reduces global namespace collisions.
+- The examples must remain runnable to preserve a fast feedback loop for developers.
+
+### What worked
+- After updating the regex example, `scripts/02-run-examples.sh` completes successfully again.
+- `go test ./... -count=1` still passes via `scripts/01-go-test.sh`.
+
+### What didn't work
+- `scripts/02-run-examples.sh` initially failed with:
+  - `Error: compile script: SyntaxError: Unmatched ')' at examples/log-parse/parser-regex.js:7:15`
+  - Root cause: unsupported RegExp features in goja (named capture groups and related syntax).
+
+### What I learned
+- goja’s RegExp implementation is compatible with a large subset of JS regexes, but it does not support named capture groups; examples should avoid these features unless we document the limitation prominently.
+- “Pipeline” language easily suggests stage chaining; describing the design as “fan-out tagged derived streams” better matches what we want users to build.
+
+### What was tricky to build
+- Keeping the document precise without prematurely committing to `require()` semantics: the design has to clearly explain code reuse as a future capability, not a current coupling mechanism.
+
+### What warrants a second pair of eyes
+- The tag injection rules and schema defaults in the design doc: verify that `event.tags` + `event.fields._tag/_module` are the right long-term knobs (namespacing, collisions, downstream ergonomics).
+
+### What should be done in the future
+- Implement the multi-module fan-out runner and CLI flags described in the updated design doc.
+- Add new ticket scripts (tasks 12/13) for multi-module demo + validation once the feature exists.
+
+### Code review instructions
+- Read the updated design doc:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/02-next-step-design-multi-script-pipeline-for-log-parse.md`
+- Validate examples and unit tests:
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/02-run-examples.sh`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/01-go-test.sh`
+
+### Technical details
+- The regex example now uses:
+  - `^(\w+)\s+\[([^\]]+)\]\s+(.*)$` with positional groups `m[1..3]`
+- New tasks were added to `tasks.md` to track the multi-module build/test script work.
+
+## Step 12: Translate the “Full” Spec into a Fan-Out Roadmap (Tasks + Design)
+
+Read the imported upstream spec and turned it into a concrete, incremental roadmap that stays aligned with our “fan-out tagged derived streams” model. The goal of this step is to keep momentum and avoid “spec paralysis”: we explicitly choose which spec features to build next, how they map to our runner architecture, and which features stay deferred behind safety boundaries (notably sandboxed `require()`).
+
+This step produced two outputs: a new set of ticket tasks that break down the next implementation phases, and a new design doc that explains how the LogFlow-ish features (stdlib, multiline, error records, future aggregation) fit into the fan-out module model.
+
+**Commit (code):** N/A (this workspace has no `.git` directory, so I could not produce a commit hash)
+
+### What I did
+- Reviewed the full imported spec:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/sources/local/js-log-parser-spec.md`
+- Added a new batch of docmgr tasks to move from MVP → multi-module fan-out → “LogFlow-ish” features:
+  - `docmgr task add --ticket MO-007-LOG-PARSER --text "..."`
+- Created a new roadmap design doc that aligns the spec to the fan-out plan:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/03-roadmap-design-from-fan-out-log-parse-to-logflow-ish-system.md`
+
+### Why
+- The spec is intentionally over-scoped; without a roadmap it’s easy to oscillate between “implement everything” and “do nothing”.
+- We need a shared understanding of how future features (stdlib, multiline, aggregation, outputs) fit into the fan-out semantics already captured in the next-step design doc.
+- Task granularity matters: it lets us implement, test, and validate in small slices while keeping `docmgr` bookkeeping accurate.
+
+### What worked
+- The spec decomposes cleanly into phases that match our current architecture:
+  - multi-module fan-out foundation first
+  - then multi-event returns and error records
+  - then stdlib v1 helpers
+  - then multiline buffering
+- The new roadmap design doc makes “alignment to fan-out” explicit, instead of silently drifting back into stage chaining.
+
+### What didn't work
+- N/A (documentation + planning only).
+
+### What I learned
+- The largest “value per feature” in the upstream spec is **stdlib ergonomics** (helpers) and **multiline buffering**; advanced outputs and async hooks are bigger boundary crossings and should stay deferred.
+- The spec’s `aggregate`/`output` stages don’t map 1:1 to fan-out; they need a deliberate reinterpretation (per-module aggregate events or Go-level sinks).
+
+### What was tricky to build
+- Writing down a “full system” path without prematurely committing to unsafe capabilities (filesystem/network/require); this required explicitly separating “what we can do safely now” from “what needs sandbox policy”.
+
+### What warrants a second pair of eyes
+- The stdlib v1 surface area: confirm the chosen helper set is the right “minimum useful” and that we aren’t locking ourselves into awkward namespacing (`log.*` vs globals).
+- The proposed “dead-letter” error record shape: ensure it’s sufficient for debugging while not leaking sensitive data by default.
+
+### What should be done in the future
+- Start implementing tasks 14–17 (fan-out runner + CLI loading/validation/introspection), then add tests (task 24) before expanding helper surface area.
+
+### Code review instructions
+- Review the roadmap design doc:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/03-roadmap-design-from-fan-out-log-parse-to-logflow-ish-system.md`
+- Compare it against the alignment target:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/02-next-step-design-multi-script-pipeline-for-log-parse.md`
+- Confirm the task breakdown:
+  - `docmgr task list --ticket MO-007-LOG-PARSER`
+
+### Technical details
+- Roadmap highlights (next-phase building blocks):
+  - multi-module loader (`--module`, `--modules-dir`) + `validate`
+  - fan-out runner that emits tagged derived events
+  - stdlib v1 helpers as safe globals/namespaced object (no `require()` yet)
+  - multiline buffering as a per-module helper with single-worker semantics
+
+## Step 13: Implement Fan-Out Multi-Module Runner + CLI Loading/Validation + Tests
+
+Implemented the first “consequence jump” after the MVP: `log-parse` now loads **many self-contained modules** and runs them in **fan-out** on the same input stream, emitting 0..N tagged derived events per input line. This makes the tool immediately useful for real workflows where you want multiple “views” of the same log stream (errors/metrics/security) without forcing everything into one large JS script.
+
+This step also added “confidence tooling” (`validate`, `--print-pipeline`, `--stats`) and multi-module tests (tagging, state isolation, and error isolation). As part of this change, the CLI flag changed from `--js` to `--module`; docs and ticket scripts were updated so the fast feedback loop stays intact.
+
+**Commit (code):** N/A (this workspace has no `.git` directory, so I could not produce a commit hash)
+
+### What I did
+- Implemented a multi-module fan-out runner:
+  - Added `devctl/pkg/logjs/fanout.go` with `LoadFanoutFromFiles` and `(*Fanout).ProcessLine`.
+  - Added tagging injection for each emitted event (`event.tags`, `event.fields._tag`, `event.fields._module`).
+- Extended the module metadata:
+  - `register({ tag })` support (defaults to `name`): `devctl/pkg/logjs/module.go`
+  - `Module.Info()` and `Module.ScriptPath()` for pipeline introspection.
+- Updated `log-parse` CLI:
+  - `--module` (repeatable), `--modules-dir` (repeatable; non-recursive), deterministic directory load order
+  - `validate` subcommand
+  - `--print-pipeline` and `--stats`
+- Added multi-module tests:
+  - `devctl/pkg/logjs/fanout_test.go`
+- Updated examples + ticket scripts to use `--module`:
+  - `devctl/examples/log-parse/README.md`
+  - `devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/02-run-examples.sh`
+  - `devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/03-timeout-demo.sh`
+  - `devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/playbook/01-playbook-log-parse-mvp-testing.md`
+- Checked off tasks: 8, 9, 10, 14, 15, 16, 17, 24.
+- Validation runs:
+  - `cd devctl && gofmt -w ./cmd/log-parse/main.go ./pkg/logjs/module.go ./pkg/logjs/fanout.go ./pkg/logjs/types.go`
+  - `cd devctl && go test ./... -count=1`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/02-run-examples.sh`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/03-timeout-demo.sh`
+
+### Why
+- Fan-out multi-module execution is the simplest way to get real “pipeline-like” power without introducing JS-level code sharing or stage-coupling.
+- Tagging every derived output stream makes downstream routing and merging trivial.
+- Validation/introspection reduces “silent failure” modes and makes the tool approachable for teams.
+
+### What worked
+- Multi-module fan-out works end-to-end (multiple scripts, multiple outputs per line).
+- `validate` prints a concise module summary and catches duplicate names.
+- Tests cover the most important correctness properties for this iteration: tag injection, per-module state isolation, per-module error isolation.
+
+### What didn't work
+- The initial upload to reMarkable failed because PDFs already existed:
+  - `Error: entry already exists (use --force to recreate, --content-only to replace content)`
+  - Fixed by rerunning with `--force`.
+
+### What I learned
+- `goja.Object.Get("missing")` can yield a nil `goja.Value`; checking “nullish” should include nil (we used `isNullish` when reading optional `tag`).
+- It’s worth wiring `validate` early: it provides an immediate safety net before we expand the stdlib surface.
+
+### What was tricky to build
+- Designing tagging injection so it’s robust and non-invasive:
+  - don’t clobber user-provided `fields._tag/_module`
+  - avoid duplicate tags in `event.tags`
+- Evolving CLI ergonomics without a compatibility layer: switching from `--js` to `--module` required updating every script/playbook quickly so the project stays runnable.
+
+### What warrants a second pair of eyes
+- The “fatal error” vs “recoverable per-module hook error” boundary in `Fanout.ProcessLine`: currently `Module.ProcessLine` swallows hook errors and returns `(nil, nil)`; confirm this is the right long-term contract for fan-out.
+- Tag key naming (`_tag`, `_module`) and whether they should be reserved/namespaced more strongly.
+
+### What should be done in the future
+- Implement task 18: allow `parse`/`transform` to return arrays (0..N events), which will matter for multiline and “explode” semantics.
+- Implement task 19: optional dead-letter/error stream to NDJSON, so failures are observable without parsing stderr.
+
+### Code review instructions
+- Start with:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/fanout.go`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/cmd/log-parse/main.go`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/fanout_test.go`
+- Validate:
+  - `cd devctl && go test ./... -count=1`
+  - `cd devctl && go run ./cmd/log-parse validate --module examples/log-parse/parser-json.js`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/02-run-examples.sh`
+
+### Technical details
+- `log-parse` now emits 0..N events per input line (fan-out across modules), while each module still emits 0..1 event per line for now; arrays are deferred to task 18.
+- Tag injection rules are implemented in `injectTag` (fanout) rather than in `Module.normalizeEvent`, so the module remains unaware of runner composition.
+
+## Step 14: Implement Multi-Event Returns + Error Stream + Stdlib Helpers (Tasks 18–22)
+
+Expanded the engine so a module’s `parse` (and `transform`) can return **arrays** of event-like values, enabling 0..N derived events per line and setting the stage for multiline buffering and “explode” transforms. In the same pass, we added a structured error record type and wired an optional **dead-letter/error stream** from the CLI so hook failures are observable as NDJSON instead of only via stderr text.
+
+This step also grew the “stdlib v1” helpers surface toward the upstream spec: parsing helpers (`parseKeyValue`, `capture`), event/path helpers (`getPath`/`hasPath`, tag helpers), and time/numeric helpers (`parseTimestamp`, `toNumber`). `parseTimestamp` is implemented in Go (best-effort parsing via `dateparse`) and exposed as `log.parseTimestamp` for predictable behavior across environments.
+
+**Commit (code):** N/A (this workspace has no `.git` directory, so I could not produce a commit hash)
+
+### What I did
+- Engine: allow `parse`/`transform` to return arrays:
+  - Updated `devctl/pkg/logjs/module.go` to normalize `null|string|object|array` into 0..N events, and to treat errors per-event (continue processing remaining candidates).
+  - Updated fan-out and CLI call sites for the new multi-return signature.
+- Engine: structured error records:
+  - Added `logjs.ErrorRecord` in `devctl/pkg/logjs/types.go`.
+  - `Module.ProcessLine` now returns `(events, errors, err)` and records hook failures as `ErrorRecord` (including timeout classification).
+  - `Fanout.ProcessLine` aggregates module error records.
+- CLI: dead-letter/error stream:
+  - Added `--errors <path|stderr|->` to `log-parse` to emit `ErrorRecord` as NDJSON.
+  - Guarded against mixing NDJSON errors with `--print-pipeline`/`--stats` on stderr.
+- Stdlib v1 helpers:
+  - Updated `devctl/pkg/logjs/helpers.go` to add:
+    - parsing: `log.parseKeyValue`, `log.capture`
+    - path: `log.getPath`, `log.hasPath` (and `log.field` delegates to `getPath`)
+    - tags: `log.addTag`, `log.removeTag`, `log.hasTag`
+    - numeric: `log.toNumber`
+    - time: `log.parseTimestamp` (fallback in JS, overridden by Go)
+  - Injected Go-backed `log.parseTimestamp` via `injectGoHelpers` in `devctl/pkg/logjs/module.go` (uses `github.com/araddon/dateparse`).
+- Tests:
+  - Updated existing tests for new return signatures.
+  - Added coverage for parse/transform returning arrays, error records, and `log.parseTimestamp`.
+- Validation:
+  - `cd devctl && go test ./... -count=1`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/01-go-test.sh`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/02-run-examples.sh`
+
+### Why
+- Arrays are a prerequisite for multiline buffering and for derived streams where one input yields multiple outputs.
+- A structured error stream is essential once we have many modules: errors must be routable/observable without scraping logs.
+- Stdlib helpers (parsing + path access + time/numeric) are the highest-leverage parts of the upstream spec for day-to-day usability.
+
+### What worked
+- Multi-event returns work for both `parse` and `transform`.
+- Hook errors produce `ErrorRecord` while allowing other modules/events to continue processing.
+- `log.parseTimestamp` reliably converts many time strings into a JS `Date` that normalizes to ISO via our existing timestamp normalization.
+
+### What didn't work
+- N/A (no new blockers encountered; existing tests and scripts were updated as needed).
+
+### What I learned
+- goja’s behavior around “missing properties” can yield nil `goja.Value`; optional fields should be checked with a helper like `isNullish` rather than only `goja.IsUndefined`.
+- A Go-backed `parseTimestamp` is worth it: relying on JS `Date` parsing would make behavior platform-dependent and weaker for non-ISO formats.
+
+### What was tricky to build
+- Keeping stats behavior reasonable when “one line → many events”:
+  - `LinesProcessed` stays line-based
+  - `EventsEmitted` becomes per output event
+  - `LinesDropped` now more accurately means “candidate events dropped” (parse/filter/transform yielding null/false), which is fine but worth remembering.
+
+### What warrants a second pair of eyes
+- The semantics of `LinesDropped` vs “event candidates dropped”: confirm we want to keep this counter as-is or add a new counter for per-event drops once multiline/aggregation arrives.
+- Error record privacy: `RawLine` is currently included when available; decide whether default CLI behavior should redact by default for sensitive log streams.
+
+### What should be done in the future
+- Implement tasks 23 (multiline buffer helper) and 25/26 (many-module examples + scripts) now that arrays + errors + stdlib helpers are in place.
+
+### Code review instructions
+- Start with:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/module.go`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/helpers.go`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/fanout.go`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/cmd/log-parse/main.go`
+- Validate:
+  - `cd devctl && go test ./... -count=1`
+  - `cd devctl && printf '%s\n' 'x' | go run ./cmd/log-parse --module examples/log-parse/parser-json.js --errors stderr >/dev/null`
+
+### Technical details
+- Supported event-like returns from `parse`/`transform`:
+  - `null`/`undefined` → no events
+  - `string` → `{ message: string }`
+  - `object` → one event-like object
+  - `array` → flattened list of the above (nulls skipped)
+- `log.parseTimestamp`:
+  - JS fallback uses `new Date(value)` and returns null if invalid.
+  - Go override uses `dateparse.ParseAny` (and optionally Go layouts if a formats array is provided).
+
+## Step 15: Add Multiline Buffer Helper + Many-Module Example Suite (Tasks 23, 12/13, 25/26)
+
+Implemented the first usable version of multiline log handling via a `log.createMultilineBuffer(...)` helper, and added a concrete “many modules” example suite that demonstrates the fan-out model with tagged derived streams. This step turns the system into something you can actually experiment with as a developer: run a directory of modules against sample input, inspect pipeline/stats, and iterate without rewriting one giant script.
+
+This step intentionally keeps multiline semantics deterministic and single-threaded: there’s no background timer, and flushing by timeout happens only when the next line arrives. That keeps behavior predictable under goja and is sufficient for the initial “devctl logs streaming” use case.
+
+**Commit (code):** N/A (this workspace has no `.git` directory, so I could not produce a commit hash)
+
+### What I did
+- Implemented `log.createMultilineBuffer` in the stdlib prelude:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/helpers.go`
+- Added unit test coverage for the multiline buffer behavior (match=after, negate=true):
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/module_test.go`
+- Added a “many modules” example directory + sample input:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/examples/log-parse/modules/`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/examples/log-parse/sample-fanout-json-lines.txt`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/examples/log-parse/README.md`
+- Added ticket scripts to exercise/validate the many-module setup:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/04-run-fanout-modules-dir-demo.sh`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/05-validate-fanout-modules-dir.sh`
+- Ran:
+  - `cd devctl && go test ./... -count=1`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/02-run-examples.sh`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/03-timeout-demo.sh`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/04-run-fanout-modules-dir-demo.sh`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/05-validate-fanout-modules-dir.sh`
+- Checked off tasks: 23, 25, 26, and also completed earlier “multi-module scripts” tasks 12/13.
+
+### Why
+- Multiline buffering is one of the most valuable “real log” features from the upstream spec, and it depends on task 18 (multi-event returns) which we already implemented.
+- A many-module example suite is essential for confidence and onboarding: it makes the fan-out model tangible and testable.
+- Ticket scripts preserve a fast, repeatable validation loop for future refactors (stdlib expansion, multiline refinements, registry/require work).
+
+### What worked
+- The multiline helper supports the most important initial mode for stack traces: `match="after"` with `negate=true` and a continuation-pattern regex.
+- The many-module demo produces multiple outputs per line with stable tagging and prints pipeline/stats cleanly.
+
+### What didn't work
+- I accidentally ran `gofmt` on `devctl/examples/log-parse/README.md` and got:
+  - `./examples/log-parse/README.md:1:1: illegal character U+0023 '#'`
+  - Fixed by only running `gofmt` on `.go` files.
+
+### What I learned
+- When embedding JS/regex in Go raw strings, it’s easy to accidentally over-escape (`\\s` vs `\s`), which changes regex meaning; tests are critical here.
+- “Timeout” in multiline helpers is tricky without a background goroutine; making it “flush-on-next-line” keeps implementation safe and deterministic for now.
+
+### What was tricky to build
+- Choosing semantics that are useful without over-promising:
+  - We support `match="after"` now (the dominant real-world case).
+  - We document that flushing is driven by incoming lines (no background timer).
+
+### What warrants a second pair of eyes
+- Multiline semantics in `createMultilineBuffer`: confirm the chosen interpretation matches how you expect to model stack traces and “start line vs continuation line” detection.
+- Whether we need an explicit EOF flush mechanism soon for file-oriented parsing (last buffered record).
+
+### What should be done in the future
+- Consider adding an explicit end-of-input flush path (CLI-level or hook-level) so the final buffered multiline record isn’t lost when parsing finite files.
+- Implement the next helper families from the spec as needed (rate limiting, remember/recall, fingerprint, CIDR helpers), but keep safety boundaries intact.
+
+### Code review instructions
+- Review the multiline helper:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/helpers.go`
+- Review examples and scripts:
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/examples/log-parse/modules/01-errors.js`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/examples/log-parse/README.md`
+  - `/home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/04-run-fanout-modules-dir-demo.sh`
+- Validate:
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/01-go-test.sh`
+  - `bash devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/04-run-fanout-modules-dir-demo.sh`
+
+### Technical details
+- `log.createMultilineBuffer` returns `{ add(line), flush() }`:
+  - `add(line)` returns `null` while accumulating and returns a joined `"\n"` string when it decides a record is complete.
+  - `timeout` parsing supports `ms|s|m|h` and only triggers on the next `add(...)` call (no background timer).

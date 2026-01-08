@@ -40,3 +40,57 @@ Drafted next-step design for multi-script log-parse pipelines (multi parse modul
 
 - /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/02-next-step-design-multi-script-pipeline-for-log-parse.md — Defines pipeline semantics and CLI evolution
 
+
+## 2026-01-06
+
+Clarify multi-module fan-out semantics (self-contained modules emit tagged derived streams); fix regex example to avoid goja named capture groups; add tasks for multi-module build/test scripts.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/examples/log-parse/parser-regex.js — Regex example fix
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/02-next-step-design-multi-script-pipeline-for-log-parse.md — Updated design semantics
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/tasks.md — New tasks 12/13
+
+
+## 2026-01-06
+
+Roadmap: decompose imported LogFlow spec into phased fan-out plan; add tasks (14–26); add design-doc/03 aligned with design-doc/02.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/design-doc/03-roadmap-design-from-fan-out-log-parse-to-logflow-ish-system.md — New roadmap design
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/tasks.md — New task breakdown
+
+
+## 2026-01-06
+
+Implement multi-module fan-out: add logjs Fanout runner + tagging, update log-parse CLI to load many modules (--module/--modules-dir) with validate/print-pipeline/stats, add multi-module tests, and update scripts/docs from --js -> --module.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/cmd/log-parse/main.go — CLI multi-module support
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/fanout.go — Fanout runner
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/fanout_test.go — Multi-module tests
+
+
+## 2026-01-06
+
+Implement tasks 18–22: allow parse/transform to return arrays (0..N events), add ErrorRecord + optional NDJSON error stream (--errors), and expand stdlib helpers (parseKeyValue/capture/getPath/addTag/toNumber/parseTimestamp).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/cmd/log-parse/main.go — --errors output
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/helpers.go — Stdlib helper expansion
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/module.go — Multi-event returns + error records
+
+
+## 2026-01-07
+
+Implement multiline helper (createMultilineBuffer), add many-module fan-out example directory + sample input + README updates, and add runnable demo/validate ticket scripts (tasks 23, 12/13, 25/26).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/examples/log-parse/modules/01-errors.js — Example modules
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/pkg/logjs/helpers.go — Multiline helper
+- /home/manuel/workspaces/2026-01-06/log-parser-module/devctl/ttmp/2026/01/06/MO-007-LOG-PARSER--javascript-log-processor-for-devctl/scripts/04-run-fanout-modules-dir-demo.sh — Demo script
+

@@ -31,7 +31,7 @@ Provide a repeatable manual test procedure for the `log-parse` MVP:
 
 - You are in this repository with `devctl/` checked out.
 - Go toolchain is installed.
-- You use example scripts under `devctl/examples/log-parse/` (recommended) or you provide your own `--js` file.
+- You use example scripts under `devctl/examples/log-parse/` (recommended) or you provide your own `--module` file.
 
 ## Commands
 
@@ -53,7 +53,7 @@ Exit criteria:
 ### 2) Smoke test: JSON example
 
 ```bash
-cat examples/log-parse/sample-json-lines.txt | go run ./cmd/log-parse --js examples/log-parse/parser-json.js
+cat examples/log-parse/sample-json-lines.txt | go run ./cmd/log-parse --module examples/log-parse/parser-json.js
 ```
 
 Exit criteria:
@@ -63,7 +63,7 @@ Exit criteria:
 ### 3) Smoke test: logfmt example
 
 ```bash
-cat examples/log-parse/sample-logfmt-lines.txt | go run ./cmd/log-parse --js examples/log-parse/parser-logfmt.js
+cat examples/log-parse/sample-logfmt-lines.txt | go run ./cmd/log-parse --module examples/log-parse/parser-logfmt.js
 ```
 
 Exit criteria:
@@ -73,7 +73,7 @@ Exit criteria:
 ### 4) Smoke test: regex example
 
 ```bash
-cat examples/log-parse/sample-regex-lines.txt | go run ./cmd/log-parse --js examples/log-parse/parser-regex.js
+cat examples/log-parse/sample-regex-lines.txt | go run ./cmd/log-parse --module examples/log-parse/parser-regex.js
 ```
 
 Exit criteria:
@@ -82,7 +82,7 @@ Exit criteria:
 ### 5) Streaming behavior (should print per line)
 
 ```bash
-printf '%s\n' '{"msg":"one"}' '{"msg":"two"}' | go run ./cmd/log-parse --js examples/log-parse/parser-json.js
+printf '%s\n' '{"msg":"one"}' '{"msg":"two"}' | go run ./cmd/log-parse --module examples/log-parse/parser-json.js
 ```
 
 ## Exit Criteria
@@ -97,5 +97,5 @@ printf '%s\n' '{"msg":"one"}' '{"msg":"two"}' | go run ./cmd/log-parse --js exam
 Timeout behavior demo (should not hang):
 
 ```bash
-echo "x" | go run ./cmd/log-parse --js examples/log-parse/parser-infinite-loop.js --js-timeout 10ms
+echo "x" | go run ./cmd/log-parse --module examples/log-parse/parser-infinite-loop.js --js-timeout 10ms
 ```

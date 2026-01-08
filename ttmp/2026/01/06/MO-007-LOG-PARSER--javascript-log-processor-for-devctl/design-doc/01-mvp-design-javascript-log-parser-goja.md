@@ -243,15 +243,15 @@ Example usage:
 
 ```bash
 # Parse a file into NDJSON
-log-parse --js ./parser.js --input ./app.log
+log-parse --module ./parser.js --input ./app.log
 
 # Parse stdin into NDJSON (exercise streaming behavior)
-tail -f ./app.log | log-parse --js ./parser.js --source app
+tail -f ./app.log | log-parse --module ./parser.js --source app
 ```
 
 #### Proposed flags
 
-- `--js <path>`: path to JS parser file (required).
+- `--module <path>`: path to a JS module file (repeatable; at least one required).
 - `--input <path>`: input file path; if omitted, read from stdin.
 - `--source <label>`: source label stamped into events (defaults to input filename or `stdin`).
 - `--format ndjson|pretty`: output format (default `ndjson`).
@@ -330,7 +330,7 @@ This section sketches the Go packages and key types. Names are suggestions; the 
 
 - `devctl/pkg/logjs` (new): goja integration, script loading, hook execution, helper module(s)
 - `devctl/cmd/log-parse` (new): standalone CLI for exercising `devctl/pkg/logjs`
-- (future) `devctl/cmd/devctl/cmds/logs.go`: integrate `--js` processing into existing `logs` command
+- (future) `devctl/cmd/devctl/cmds/logs.go`: integrate `--module` processing into existing `logs` command
 
 ### Core Go types (sketch)
 

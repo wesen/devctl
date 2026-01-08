@@ -15,9 +15,9 @@ RelatedFiles:
     - Path: devctl/pkg/logjs/module.go
       Note: Current MVP; will be refactored into multi-module Pipeline
 ExternalSources: []
-Summary: Evolve log-parse from single-script to a multi-script pipeline (multi-parse + shared filter/transform stages), with better validation, introspection, and per-module stats.
-LastUpdated: 2026-01-06T19:25:59-05:00
-WhatFor: Make the JS log parsing system more consequential by supporting real-world setups (multiple formats, shared enrichment, reusable scripts) without requiring devctl integration yet.
+Summary: Evolve log-parse from single-script to a multi-module fan-out runner where each self-contained module emits a tagged derived stream.
+LastUpdated: 2026-01-06T21:24:45-05:00
+WhatFor: Make log-parse more consequential by supporting many self-contained scripts that each emit a tagged derived event stream, without introducing JS-level code sharing (require) yet.
 WhenToUse: Use when implementing the next iteration of log-parse/logjs or reviewing pipeline semantics and safety boundaries.
 ---
 
@@ -26,67 +26,64 @@ WhenToUse: Use when implementing the next iteration of log-parse/logjs or review
 
 ## Executive Summary
 
-The MVP `log-parse` supports a single JavaScript file that registers one module via `register({ ... })`. The next meaningful step is to support **many scripts** and a **pipeline** that composes them deterministically:
+The MVP `log-parse` supports a single JavaScript file that registers one module via `register({ ... })`. The next meaningful step is to support **many scripts** and a deterministic **fan-out runner**:
 
-- **Many parsers**: support multiple `parse(line, ctx)` modules (e.g. JSON logs + logfmt logs + ad-hoc regex logs) and choose first match or all matches.
-- **Shared event stages**: support many `filter(event, ctx)` / `transform(event, ctx)` modules applied to every parsed event (enrichment, normalization, dropping noise).
+- **Many modules**: load multiple `register({ ... })` modules and run them on the same input stream.
+- **Tagged outputs**: each module emits its own “derived” event stream, tagged with a module-defined tag (default: module name). The user can merge streams downstream or keep them separate.
 - **Better ergonomics**: `--module` repeated flags, `--modules-dir`, and a config file mode.
-- **Safer by default**: keep filesystem/exec capabilities off by default; `require()` remains off in this ticket (sandboxing is tracked in `MO-008-REQUIRE-SANDBOX`).
+- **Safer by default**: keep filesystem/exec capabilities off by default; `require()` remains off in this ticket. Shared reuse across parsers is deferred to a sandboxed `require()` design tracked in `MO-008-REQUIRE-SANDBOX`.
 - **Operational clarity**: add `--validate` and `--print-pipeline` modes, and per-module stats.
 
 This design keeps the runtime model simple and safe:
 
-- one `goja.Runtime` per worker (still `--workers=1` initially)
-- all scripts loaded into the runtime; each script calls `register(...)` exactly once
-- pipeline is implemented in Go by calling the hooks in order, not by allowing scripts to call each other directly
+- one `goja.Runtime` per module (still `--workers=1` initially)
+- each script is loaded into its own runtime; it calls `register(...)` exactly once
+- the fan-out runner is implemented in Go (no JS-level module composition yet)
 
 ## Problem Statement
 
 The MVP is useful for one-off experiments, but real log workflows quickly need:
 
-1) **Multiple formats** in a single stream (application logs, infra logs, proxy logs).
-2) **Reusable enrichment/normalization** steps shared by multiple parsers.
-3) **Composability** across teams/services (small scripts that do one thing well).
+1) **Many derived views of the same log stream** (errors, metrics, security, correlation IDs).
+2) **Module isolation**: each script should be self-contained and not depend on shared globals (until we add sandboxed `require()`).
+3) **Stable tagging**: downstream tools can group/merge results by tag.
 4) **Confidence tools**: validate scripts before running; print what’s loaded; show per-module error counts and drops.
 
 Without multi-script support, users either:
 
 - jam everything into one large script (hard to maintain), or
-- want `require()` / multi-file scripts (which is doable but needs sandboxing).
+- try to build their own “include” mechanism (which is basically `require()`).
 
-We want to get the “consequential” value first: many scripts *loaded by Go* and composed as a pipeline, without opening `require()` yet.
+We want the “consequential” value first: many scripts loaded by Go and executed independently, producing tagged outputs. Shared code reuse comes later via sandboxed `require()`.
 
 ## Proposed Solution
 
-### Pipeline model
+### Execution model: fan-out modules producing tagged streams
 
-We define two conceptual stages:
+Instead of a “shared pipeline” where one module’s output becomes the next module’s input, we run modules independently on the same input stream. Each module may parse and then filter/transform its own derived event(s).
 
-1) **Parse stage** (line → 0..N events)
-2) **Event stage** (event → 0..1 event, via filter/transform)
-
-ASCII overview:
+This keeps each `register()` self-contained and avoids cross-module coupling.
 
 ```
 input lines
    │
    ▼
 ┌──────────────────────────────────────────────────────────┐
-│ Parse stage (one or many modules)                         │
-│  - parseMode: first | all                                 │
-│  - each module: parse(line, ctx) => event|null            │
-└───────────────┬───────────────────────────────────────────┘
-                │ events (0..N)
-                ▼
-┌──────────────────────────────────────────────────────────┐
-│ Event stage (many modules, deterministic order)           │
-│  - filter(event, ctx) => boolean (drop if false)          │
-│  - transform(event, ctx) => event|null (drop if null)     │
-└───────────────┬───────────────────────────────────────────┘
-                │ events
-                ▼
-output (ndjson/pretty)
+│ Module A (tag=a): parse/filter/transform => event|null    │
+├──────────────────────────────────────────────────────────┤
+│ Module B (tag=b): parse/filter/transform => event|null    │
+├──────────────────────────────────────────────────────────┤
+│ Module C (tag=c): parse/filter/transform => event|null    │
+└──────────────────────────────────────────────────────────┘
+   │
+   ▼
+output events (0..N per input line), each tagged
 ```
+
+This matches the common case you described:
+- the input stream is usually a single format
+- multiple modules exist because they emit different *views* / *derived events* (e.g. “errors”, “metrics”, “security”)
+- downstream merging is user-controlled (group by tag, or merge selectively)
 
 ### Multi-script loading UX
 
@@ -99,12 +96,11 @@ Add to `log-parse`:
 Examples:
 
 ```bash
-# multiple scripts in explicit order
+# multiple self-contained derived-stream modules (explicit order for determinism)
 log-parse \
-  --module ./parsers/json.js \
-  --module ./parsers/logfmt.js \
-  --module ./stages/drop-debug.js \
-  --module ./stages/add-service.js \
+  --module ./modules/errors.js \
+  --module ./modules/metrics.js \
+  --module ./modules/security.js \
   --input ./mixed.log
 
 # load every script under a directory (lexicographic)
@@ -113,35 +109,48 @@ log-parse --modules-dir ./pipeline/ --input ./mixed.log
 
 ### Module contract updates (JS)
 
-We keep the same `register({ ... })` contract, but add optional metadata fields to clarify intent:
+We keep the same `register({ ... })` contract, but add an explicit `tag` field for the “derived stream tag”:
 
 ```js
 register({
-  name: "drop-debug",
-  kind: "stage",        // optional: parser | stage | both
-  order: 100,           // optional: numeric ordering within the stage
+  name: "errors",
+  tag: "errors",       // optional; defaults to name
 
-  filter(event, ctx) { return event.level !== "DEBUG"; },
+  parse(line, ctx) { /* ... */ },
 });
 ```
 
 Rules:
 
-- `name` still required and must be unique within a run.
-- A module may provide:
-  - `parse` (participates in parse stage)
-  - `filter` and/or `transform` (participates in event stage)
-- `kind` is advisory; actual participation is determined by which hooks exist.
-- `order` is optional; if present, it sorts modules within their stage (stable by script load order as tie-breaker).
+- `name` is required and must be unique within a run.
+- `tag` is optional; if absent we set `tag = name`.
+- `parse` is required for this multi-module iteration (every module is a parser/producer).
+- `filter` and `transform` (optional) apply only to the derived event(s) produced by that module’s `parse`.
 
-### Parse mode
+### Self-contained module semantics (important)
 
-We need a clear rule when multiple parsers exist:
+The operational goal is **one input stream, many derived tagged streams**:
 
-- `--parse-mode first` (default): stop at the first parser that returns an event; produce at most 1 event per line.
-- `--parse-mode all`: run all parsers and emit one event per parser that matches.
+- Each module receives the same input line (and context) and decides whether it recognizes it.
+- Each module returns `null` when the line is “not for it”, and emits an event when it is.
+- Modules do not depend on other modules’ output. There is no ordering dependency between modules for correctness.
+- Code reuse across modules is intentionally deferred to sandboxed `require()` (ticket `MO-008-REQUIRE-SANDBOX`).
 
-This keeps behavior predictable and allows users to opt into “fan-out”.
+This fits the “one format, many outputs” usage:
+
+- Input stream: usually a single format (e.g. devctl logs from one service).
+- Output streams: different tags for different consumers (alerts vs metrics vs audit).
+- Merging: downstream tools decide whether to merge or keep separate (`jq`, vector, fluent-bit, etc.).
+
+### Tag injection rules (output schema)
+
+For every emitted event from module `M` with `tag`:
+
+- ensure `event.tags` contains `tag` (append if missing)
+- set `event.fields._tag = tag` (unless already set)
+- set `event.fields._module = M.name` (unless already set)
+
+This yields a robust downstream grouping key even if the user script doesn’t set `tags` at all.
 
 ### Validation and introspection
 
@@ -161,85 +170,45 @@ Add commands/flags to make this safe and debuggable:
 ### Go implementation approach (incremental, minimal refactor)
 
 Current MVP has `logjs.Module` representing one script + one module.
-For multi-script, we introduce:
+For “fan-out multi modules”, we introduce:
 
 ```go
-// devctl/pkg/logjs/pipeline.go (new)
-type Pipeline struct {
-	Modules []*LoadedModule
-	Parse   []*LoadedModule // modules with parse hook
-	Stages  []*LoadedModule // modules with filter/transform hooks
-	Options PipelineOptions
+// devctl/pkg/logjs/fanout.go (new)
+type Fanout struct {
+	Modules []*Module // existing logjs.Module, one per script
+	Options FanoutOptions
 }
 
-type LoadedModule struct {
-	Name string
-	Path string
-
-	HasParse      bool
-	HasFilter     bool
-	HasTransform  bool
-	HasInit       bool
-	HasShutdown   bool
-	HasOnError    bool
-
-	ParseFn      goja.Callable
-	FilterFn     goja.Callable
-	TransformFn  goja.Callable
-	InitFn       goja.Callable
-	ShutdownFn   goja.Callable
-	OnErrorFn    goja.Callable
-
-	State *goja.Object // per-module state object
-	Stats Stats        // per-module stats (not shared)
-}
-
-type PipelineOptions struct {
+type FanoutOptions struct {
 	HookTimeout time.Duration
-	ParseMode   string // first | all
 }
 ```
 
 Key runtime decision:
 
-- **One goja runtime per pipeline instance** (per worker).
-- Load all scripts into the same runtime.
-- Each script calling `register(config)` captures:
-  - the config object for that module
-  - the Go callables for each hook
-  - a new per-module state object
+-- **One runtime per module** (recommended for this iteration).
 
-This avoids cross-runtime event marshalling and keeps performance reasonable.
+Rationale:
+- modules are intended to be self-contained
+- separate runtimes avoid global collisions between scripts
+- it keeps the implementation closer to the existing MVP (`LoadFromFile` already builds a complete runnable module)
 
-### Pseudocode: pipeline execution
+Downside:
+- slightly more per-line overhead (N modules × N parse calls)
+
+Mitigations:
+- compile user scripts once per module (already done via `goja.Compile`)
+- keep `--workers=1` initially; optimize later if needed
+
+### Pseudocode: fan-out execution
 
 ```text
-init:
-  for m in Modules in deterministic order:
-    if m.init exists: call init(ctx{hook:"init", state:m.state})
-
 for each input line:
-  events = []
-  for p in Parse modules in order:
-    v = p.parse(line, ctx{hook:"parse", state:p.state})
-    if v != null:
-      events.append(normalize(v))
-      if parseMode == "first": break
-
-  for each event in events:
-    for s in Stage modules in order:
-      if s.filter exists:
-        keep = s.filter(event, ctx{hook:"filter", state:s.state})
-        if !keep: drop event; continue next event
-      if s.transform exists:
-        v2 = s.transform(event, ctx{hook:"transform", state:s.state})
-        if v2 == null: drop event; continue next event
-        event = normalize(v2)
-    emit event
-
-shutdown:
-  for m in Modules in reverse order:
-    if m.shutdown exists: call shutdown(ctx{hook:"shutdown", state:m.state})
+  for each module M:
+    ev = M.ProcessLine(line, source, lineNumber)
+    if ev != nil:
+      injectTag(ev, M.tag, M.name)
+      emit ev
 ```
 
 ### “Further things that make sense” (next step backlog)
@@ -248,8 +217,9 @@ Once multi-script is in place, the next high-leverage additions are:
 
 1) **Config file** (`log-parse.yaml`) for repeatability:
    - list of modules (paths/directories)
-   - parseMode, timeout, output format
+   - timeout, output format
    - optional per-module enable/disable
+   - optional tag overrides
 
 2) **Module discovery and packaging**:
    - `--modules-dir` recursive
@@ -277,19 +247,16 @@ Rationale:
 - simpler runtime behavior (no module cache surprises)
 - fewer decisions required about filesystem access and path traversal
 
-### 2) One runtime per pipeline instance
+### 2) One runtime per module (fan-out)
+
+Update: for this iteration we use **one runtime per module** (fan-out), not one shared runtime.
 
 Rationale:
-- avoids expensive conversion between runtimes
-- keeps `goja.Value` objects usable across hook calls
+- keeps each `register()` self-contained (no shared globals)
+- reduces accidental coupling between modules
+- makes it easier to later sandbox `require()` per module
 
-### 3) Parse mode explicitly configurable
-
-Rationale:
-- “first match” is often what users want for mixed-format logs
-- “all match” is sometimes useful for fan-out and enrichment
-
-### 4) Per-module state objects
+### 3) Per-module state objects
 
 Rationale:
 - scripts can safely keep counters/caches without stepping on each other
@@ -303,11 +270,11 @@ Rejected:
 - makes small “stage-only” scripts awkward
 - encourages copy/paste and bloat
 
-### 2) One goja runtime per script
+### 2) One goja runtime for all scripts
 
-Rejected:
-- too expensive and complicated (event must be marshalled between runtimes)
-- difficult to keep consistent semantics for JS objects (Date, RegExp, etc.)
+Deferred:
+- feasible, but it increases the risk of global collisions (scripts accidentally share globals)
+- it also invites “implicit coupling” (scripts can call each other’s globals), which we want to avoid until require() is sandboxed
 
 ### 3) Enable require() and let scripts compose themselves
 
@@ -318,19 +285,17 @@ Deferred:
 
 1. Extend CLI to accept repeated `--module` and `--modules-dir`.
 2. Refactor `devctl/pkg/logjs`:
-   - split “runtime + hook execution + normalization” into reusable helpers
-   - introduce `Pipeline` type (multi-module)
+   - add a `Fanout` runner that runs multiple `Module`s per line and injects tags
 3. Implement `validate`/`--print-pipeline`.
 4. Add tests:
-   - multi-parser: parseMode first/all behavior
-   - stage ordering and order stability
+   - tag injection
    - per-module state isolation
 5. Add example pipeline directory under `devctl/examples/log-parse/pipeline/`.
 
 ## Open Questions
 
 1) Should we allow parse modules to emit multiple events per line (array return) in this phase?
-2) Should `order` live in JS module metadata, or in the CLI/config file only?
+2) Should tag be only in JS metadata, or also settable via CLI/config?
 3) How do we want to represent “module version” and compatibility in the future?
 
 ## References
