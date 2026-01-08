@@ -21,6 +21,15 @@ devctl plugins let you take all the “tribal knowledge” of starting a dev env
 
 This guide is a playbook, not just a spec. It explains the protocol, shows the mental model devctl uses when it talks to plugins, and gives you copy/paste examples (plus the patterns you’ll want once people actually rely on your plugin every day).
 
+## 0. Start here (if you're new to devctl)
+
+This document goes deep on the plugin protocol and the patterns that matter once you have multiple plugins, strictness rules, and real users. If you’re new to devctl overall, it’s usually faster to start with the user guide and the scripting guide first, then come back here for the complete protocol and schema details.
+
+```text
+glaze help devctl-user-guide
+glaze help devctl-scripting-guide
+```
+
 ## 1. What a devctl plugin is
 
 A devctl plugin is a long-lived child process managed by devctl. devctl starts the process, expects an immediate handshake on stdout, and then drives the dev environment by sending request frames on stdin and reading response/event frames on stdout. Put differently: devctl is the orchestrator, and your plugin is the repo-specific adapter.
