@@ -71,3 +71,13 @@ Add Glazed help system + embed devctl docs; port status to Glazed (commit 2b209b
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/main.go — Wire help system and doc embedding into devctl root
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/doc/doc.go — Embed Markdown topics for help
 
+
+## 2026-01-08
+
+Update MO-012 plan/tasks; add testing diary and record validations (commit 012b0ca)
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/reference/02-testing-diary.md — Recorded go test + smoketest runs and failures verbatim
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/tasks.md — Checked off help/status/tests; added exhaustive validation backlog
+
