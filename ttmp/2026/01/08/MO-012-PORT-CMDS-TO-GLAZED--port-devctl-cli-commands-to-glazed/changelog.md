@@ -50,3 +50,24 @@ Docs: add Cobra↔Glazed porting friction report (improvement backlog for persis
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/analysis/02-cobra-glazed-porting-friction-report.md — Exhaustive report + proposed improvements
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/reference/01-diary.md — Diary Step 5
 
+
+## 2026-01-08
+
+Repo context flags are now command-local (no root persistent flags) (commit b465e03)
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/common.go — Repo flag layer + normalization (command-local)
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/dynamic_commands.go — Ensure dynamic commands also get repo flags
+
+
+## 2026-01-08
+
+Add Glazed help system + embed devctl docs; port status to Glazed (commit 2b209b2)
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/status.go — Status ported to Glazed WriterCommand
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/main.go — Wire help system and doc embedding into devctl root
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/pkg/doc/doc.go — Embed Markdown topics for help
+

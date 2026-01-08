@@ -13,7 +13,7 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: devctl/cmd/devctl/cmds/common.go
-      Note: Root flags to port into a custom Glazed layer
+      Note: Repo context flags + normalization (command-local) to reuse as a Glazed layer
     - Path: devctl/cmd/devctl/cmds/dev/root.go
       Note: Hidden 'dev' group for dev-only commands
     - Path: devctl/cmd/devctl/cmds/dev/smoketest/root.go
@@ -38,7 +38,9 @@ WhenToUse: ""
 
 # devctl → Glazed port: CLI verb inventory and plan
 
-This document inventories every devctl CLI verb and flag, then proposes a concrete Glazed-based port plan. The goal is not to rewrite behavior, but to change *how the CLI is structured*: move from ad-hoc Cobra flag parsing to Glazed parameter definitions and reusable layers (especially for repo-root/config/timeouts), while integrating the Glazed help system so docs are queryable and consistent.
+This document inventories every devctl CLI verb and flag, then proposes a concrete Glazed-based port plan. The goal is not to rewrite behavior, but to change *how the CLI is structured*: move from hand-written Cobra `RunE` blocks to Glazed command structs and reusable parameter layers, while integrating the Glazed help system so docs are queryable and consistent.
+
+**Important decision (simplification):** we do **not** require exact flag parity with the old Cobra CLI, and we do **not** require `--repo-root/--config/...` to remain as persistent root flags. Repo context flags are allowed to be **command-local**, which means they appear after the verb (example: `devctl status --repo-root /path/to/repo`).
 
 ## 1. Scope and non-goals
 
@@ -47,9 +49,9 @@ This section defines what “port to Glazed” means in practice, so the impleme
 **In scope:**
 
 - Use Glazed’s command model (`cli.BuildCobraCommand`) rather than hand-written Cobra `RunE` blocks.
-- Replace ad-hoc root flag parsing with a custom Glazed layer for `repo-root` (and related flags).
+- Use a reusable Glazed layer for repo context flags (`repo-root`, `config`, `strict`, `dry-run`, `timeout`) and attach it to each relevant command.
 - Initialize the Glazed help system in the devctl root command, similar to `glazed/cmd/glaze/main.go`.
-- Preserve the existing devctl UX contracts (flags, defaults, output formats, error messages where reasonable).
+- Preserve output formats and core behavior, but allow flag placement/shape to change where it simplifies the port.
 
 **Out of scope (for this ticket):**
 
@@ -70,9 +72,9 @@ These are the upstream “how to do it the Glazed way” sources that should gui
 
 This section lists the current verbs and the flags they define. It is the canonical contract for porting work.
 
-### 3.1. Root command and global flags
+### 3.1. Common repo context flags (command-local)
 
-devctl defines global flags in `cmd/devctl/cmds/common.go`:
+devctl defines repo context flags in `cmd/devctl/cmds/common.go`. These flags are attached to (most) verbs directly, and should be used after the verb:
 
 - `--repo-root string` (default: current directory; normalized to absolute path)
 - `--config string` (default: `.devctl.yaml` under repo-root; relative paths resolved under repo-root)
@@ -89,15 +91,15 @@ Core workflow:
 - `devctl up`
   - Flags: `--force`, `--skip-validate`, `--skip-build`, `--skip-prepare`, `--build-step` (repeatable), `--prepare-step` (repeatable)
 - `devctl down`
-  - Flags: none (uses global flags)
+  - Flags: none (uses repo context flags)
 - `devctl status`
   - Flags: `--tail-lines int` (default 25)
 - `devctl logs`
   - Flags: `--service string` (required), `--stderr`, `--follow`
 - `devctl plan`
-  - Flags: none (uses global flags)
+  - Flags: none (uses repo context flags)
 - `devctl plugins list`
-  - Flags: none (uses global flags)
+  - Flags: none (uses repo context flags)
 - `devctl stream start`
   - Flags: `--plugin string`, `--op string` (required), `--input-json string`, `--input-file string`, `--start-timeout duration`, `--json`
 - `devctl tui`
@@ -156,7 +158,7 @@ For devctl, the docs source should include:
 
 ### 4.2. The custom `repo-root` layer (required)
 
-Devctl currently “manually” implements root flag normalization (absolute repo root, config resolution under repo root, timeout validation). In Glazed, this should be a dedicated reusable layer.
+Devctl currently normalizes repo context flags (absolute repo root, config resolution under repo root, timeout validation) in `cmd/devctl/cmds/common.go`. In Glazed, this should be a dedicated reusable layer, but it does not need to be persistent at the root: attach it to each relevant command.
 
 **Proposed layer:**
 
@@ -208,9 +210,9 @@ This ticket should decide a consistent approach:
 
 Each subsection describes how to represent the command’s flags in Glazed terms: which layer(s), which parameter definitions, which settings structs, and how to preserve defaults and validation.
 
-### 5.1. Root flags (applies to most commands)
+### 5.1. Repo context flags (applies to most commands)
 
-**Current flags (Cobra persistent):**
+**Current flags (command-local):**
 
 - `--repo-root string`
 - `--config string`
@@ -221,7 +223,7 @@ Each subsection describes how to represent the command’s flags in Glazed terms
 **Glazed port:**
 
 - Implement the `RepoSettings` custom layer (Section 4.2).
-- Include this layer in every devctl Glazed command by default.
+- Include this layer in every devctl Glazed command that needs repo context.
 - Prefer accessing values via `parsedLayers.InitializeStruct("repo", &RepoSettings{})`.
 
 ### 5.2. `up`

@@ -12,9 +12,19 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/analysis/01-devctl-cli-verb-inventory-and-porting-plan-to-glazed.md
+    - Path: devctl/cmd/devctl/cmds/status.go
+      Note: First Glazed-ported command (WriterCommand)
+    - Path: devctl/cmd/devctl/main.go
+      Note: Initialize Glazed help system and load embedded devctl docs
+    - Path: devctl/go.mod
+      Note: Help-system dependency additions via go mod tidy
+    - Path: devctl/pkg/doc/doc.go
+      Note: Embed devctl Markdown topics for help system
+    - Path: devctl/pkg/doc/topics/devctl-user-guide.md
+      Note: Update repo-flag usage + fix YAML frontmatter quoting
+    - Path: devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/analysis/01-devctl-cli-verb-inventory-and-porting-plan-to-glazed.md
       Note: Primary analysis doc for the port
-    - Path: ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/tasks.md
+    - Path: devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/tasks.md
       Note: Task breakdown for implementation
 ExternalSources: []
 Summary: ""
@@ -22,6 +32,8 @@ LastUpdated: 2026-01-08T00:28:54.618949592-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 # Diary
@@ -284,3 +296,105 @@ The report is intentionally exhaustive and opinionated: it’s meant to be used 
 
 ### Technical details
 - N/A
+
+## Step 6: Drop Persistent Root Repo Flags (completed)
+
+This step accepts a deliberate simplification: we stop trying to preserve “root persistent” repo flags (and exact flag parity) while porting to Glazed. Instead, repo context flags (`--repo-root`, `--config`, `--strict`, `--dry-run`, `--timeout`) become **command-local** and are attached to each relevant verb.
+
+This makes the CLI shape more uniform for the Glazed port (each command explicitly declares its inputs) and avoids a large class of Cobra-vs-Glazed confusion around persistent flags and parsing precedence.
+
+**Commit (code):** b465e03bc4c1ebd6899d40d8c6aeb0e596689f62 — "devctl: make repo flags command-local"
+
+### What I did
+- Removed the use of persistent root flags for repo context and added repo flags to each command that needs them.
+- Updated dynamic command registration so dynamically created commands also get repo context flags.
+- Updated the dynamic command tests to use the new flag placement.
+
+### Why
+- The Glazed port does not need to preserve Cobra’s “persistent flags on root” UX.
+- Command-local flags reduce ambiguity and make it easier to reason about which commands require repo context.
+
+### What worked
+- Repo context is available consistently across built-in and dynamic commands without relying on root persistent flags.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Keeping a small “repo layer” that can be attached to commands is useful even before the full Glazed port, because it centralizes normalization and defaults.
+
+### What was tricky to build
+- Ensuring dynamic commands keep working (they need the same repo flags and parsing rules as built-ins).
+
+### What warrants a second pair of eyes
+- Whether we should proactively detect and warn on the old flag placement style (root-level `--repo-root` before the verb), or leave it as-is.
+
+### What should be done in the future
+- N/A (this is an intentional UX change for the port).
+
+### Code review instructions
+- Focus on repo context parsing and where flags are attached:
+  - `devctl/cmd/devctl/cmds/common.go`
+  - `devctl/cmd/devctl/cmds/dynamic_commands.go`
+- Validate quickly:
+  - `cd devctl && go test ./... -count=1`
+
+### Technical details
+- New usage pattern:
+  - `devctl status --repo-root /path/to/repo`
+  - `devctl plugins list --repo-root /path/to/repo`
+
+## Step 7: Add Glazed Help System + Port `status` to a Glazed Command (completed)
+
+This step wires the Glazed help system into the devctl root command and embeds the devctl docs so `devctl help <slug>` works. It also ports the `status` verb to a Glazed `WriterCommand` and registers it via `cli.BuildCobraCommand`, proving the porting approach end-to-end on a low-risk command.
+
+Along the way, we fixed an easy-to-miss docs issue: YAML frontmatter `Short:` values that contain a literal `:` must be quoted or the frontmatter parser will reject the doc.
+
+**Commit (code):** 2b209b21c423e8d583e5a1cc57c996d202253b69 — "devctl: add help system and port status to Glazed"
+
+### What I did
+- Added a `devctl/pkg/doc` embed loader and wired it into `cmd/devctl/main.go` via `help_cmd.SetupCobraRootCommand`.
+- Ported `devctl status` to a Glazed `WriterCommand` and built it with `cli.BuildCobraCommand`.
+- Fixed YAML frontmatter parsing by quoting `Short:` values containing `:` in:
+  - `devctl/pkg/doc/topics/devctl-user-guide.md`
+  - `devctl/pkg/doc/topics/devctl-tui-guide.md`
+  - `devctl/pkg/doc/topics/devctl-scripting-guide.md`
+- Ran `go mod tidy` to ensure `GOWORK=off` builds include the new help-system dependency set.
+
+### Why
+- The help system is a key part of the Glazed UX and should be available during the port.
+- Porting a single command early validates the wiring (layers, parsing, and output) before we touch more complex verbs.
+
+### What worked
+- `devctl help devctl-user-guide` renders embedded docs.
+- `status` continues to work and keeps the same JSON output.
+
+### What didn't work
+- Initially, invalid YAML frontmatter caused the help system to drop docs (only visible via debug logs during startup).
+
+### What I learned
+- Unquoted YAML strings containing `:` are a recurring foot-gun for frontmatter-style docs.
+- Importing help-system packages brings in new transitive dependencies that must be captured in devctl’s `go.mod/go.sum` for `GOWORK=off` hygiene.
+
+### What was tricky to build
+- Getting the “doc embedding path” correct so help system recursion finds `topics/*.md`.
+
+### What warrants a second pair of eyes
+- Whether we should treat “failed to load embedded docs” as a hard startup error for devctl.
+- Whether porting commands via `cli.BuildCobraCommand` should use Cobra’s configured writer instead of `os.Stdout` (current Glazed behavior).
+
+### What should be done in the future
+- Port the next “core” verbs (`plugins list`, `plan`) to Glazed and ensure dynamic command discovery still behaves correctly under the mixed Cobra/Glazed tree.
+
+### Code review instructions
+- Start here:
+  - `devctl/cmd/devctl/main.go`
+  - `devctl/pkg/doc/doc.go`
+  - `devctl/cmd/devctl/cmds/status.go`
+- Validate:
+  - `cd devctl && GOWORK=off go test ./... -count=1`
+  - `cd devctl && GOWORK=off go run ./cmd/devctl help devctl-user-guide | head`
+  - `cd devctl && GOWORK=off go run ./cmd/devctl dev smoketest e2e --timeout 60s`
+
+### Technical details
+- Help docs are sourced from `devctl/pkg/doc/topics/*.md` and loaded at startup.
