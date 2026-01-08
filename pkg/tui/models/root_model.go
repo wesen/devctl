@@ -21,6 +21,7 @@ const (
 	ViewEvents    ViewID = "events"
 	ViewPipeline  ViewID = "pipeline"
 	ViewPlugins   ViewID = "plugins"
+	ViewStreams   ViewID = "streams"
 )
 
 type RootModel struct {
@@ -35,6 +36,7 @@ type RootModel struct {
 	events    EventLogModel
 	pipeline  PipelineModel
 	plugins   PluginModel
+	streams   StreamsModel
 
 	publishAction      func(tui.ActionRequest) error
 	publishStreamStart func(tui.StreamStartRequest) error
@@ -65,6 +67,7 @@ func NewRootModel(opts RootModelOptions) RootModel {
 		events:             NewEventLogModel(),
 		pipeline:           NewPipelineModel(),
 		plugins:            NewPluginModel(),
+		streams:            NewStreamsModel(),
 		publishAction:      opts.PublishAction,
 		publishStreamStart: opts.PublishStreamStart,
 		publishStreamStop:  opts.PublishStreamStop,
@@ -320,6 +323,10 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.plugins, cmd = m.plugins.Update(msg)
 		return m, cmd
+	case ViewStreams:
+		var cmd tea.Cmd
+		m.streams, cmd = m.streams.Update(msg)
+		return m, cmd
 	case ViewDashboard:
 		var cmd tea.Cmd
 		m.dashboard, cmd = m.dashboard.Update(msg)
@@ -390,6 +397,8 @@ func (m RootModel) View() string {
 		content = m.pipeline.View()
 	case ViewPlugins:
 		content = m.plugins.View()
+	case ViewStreams:
+		content = m.streams.View()
 	default:
 		content = m.dashboard.View()
 	}
@@ -426,6 +435,9 @@ func (m RootModel) View() string {
 			"",
 			theme.KeybindKey.Render("Plugins")+":",
 			"  "+theme.TitleMuted.Render("↑/↓ select, enter expand, a expand all, A collapse all, esc back"),
+			"",
+			theme.KeybindKey.Render("Streams")+":",
+			"  "+theme.TitleMuted.Render("n new (JSON), j/k select, ↑/↓ scroll, x stop, c clear, esc back"),
 		)
 		helpSection = helpStyle.Render(helpContent)
 	}
@@ -497,6 +509,13 @@ func (m RootModel) footerKeybinds() []widgets.Keybind {
 			{Key: "a/A", Label: "all"},
 			{Key: "esc", Label: "back"},
 		}
+	case ViewStreams:
+		return []widgets.Keybind{
+			{Key: "n", Label: "new"},
+			{Key: "j/k", Label: "select"},
+			{Key: "↑/↓", Label: "scroll"},
+			{Key: "x", Label: "stop"},
+		}
 	default:
 		return nil
 	}
@@ -524,5 +543,6 @@ func (m RootModel) applyChildSizes() RootModel {
 	m.events = m.events.WithSize(m.width, childHeight)
 	m.pipeline = m.pipeline.WithSize(m.width, childHeight)
 	m.plugins = m.plugins.WithSize(m.width, childHeight)
+	m.streams = m.streams.WithSize(m.width, childHeight)
 	return m
 }
