@@ -119,6 +119,7 @@ func newStreamStartCmd() *cobra.Command {
 	cmd.Flags().StringVar(&inputFile, "input-file", "", "Path to a JSON file to pass as input to the stream-start op")
 	cmd.Flags().DurationVar(&startTimeout, "start-timeout", 2*time.Second, "Timeout for starting the stream (getting stream_id)")
 	cmd.Flags().BoolVar(&rawJSON, "json", false, "Print raw protocol.Event JSON lines")
+	AddRepoFlags(cmd)
 	return cmd
 }
 

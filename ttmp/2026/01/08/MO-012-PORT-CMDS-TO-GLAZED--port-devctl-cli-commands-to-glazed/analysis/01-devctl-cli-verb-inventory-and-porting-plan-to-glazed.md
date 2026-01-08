@@ -12,26 +12,20 @@ DocType: analysis
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: ../../../../../../../glazed/cmd/glaze/main.go
-      Note: Reference for Glazed root init + help system
-    - Path: ../../../../../../../glazed/pkg/doc/topics/01-help-system.md
-      Note: Reference for help system integration
-    - Path: ../../../../../../../glazed/pkg/doc/tutorials/05-build-first-command.md
-      Note: Reference for BuildCobraCommand patterns
-    - Path: ../../../../../../../glazed/pkg/doc/tutorials/custom-layer.md
-      Note: Reference for custom layer design
-    - Path: cmd/devctl/cmds/common.go
-      Note: Root flags to port into a custom Glazed layer
-    - Path: cmd/devctl/cmds/logs.go
-      Note: logs flags and follow semantics
-    - Path: cmd/devctl/cmds/root.go
+    - Path: devctl/cmd/devctl/cmds/common.go
+      Note: Repo context flags + normalization (command-local) to reuse as a Glazed layer
+    - Path: devctl/cmd/devctl/cmds/dev/root.go
+      Note: Hidden 'dev' group for dev-only commands
+    - Path: devctl/cmd/devctl/cmds/dev/smoketest/root.go
+      Note: Smoketest group + subcommands under dev
+    - Path: devctl/cmd/devctl/cmds/root.go
       Note: Canonical list of devctl Cobra commands
-    - Path: cmd/devctl/cmds/status.go
-      Note: status JSON output + tail-lines
-    - Path: cmd/devctl/cmds/stream.go
-      Note: stream start flags and JSON input handling
-    - Path: cmd/devctl/cmds/up.go
-      Note: up flags and pipeline execution
+    - Path: glazed/cmd/glaze/main.go
+      Note: Reference for Glazed root init + help system
+    - Path: glazed/pkg/doc/topics/01-help-system.md
+      Note: Reference for help system integration
+    - Path: glazed/pkg/doc/tutorials/custom-layer.md
+      Note: Reference for custom layer design
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-08T00:28:58.716960441-05:00
@@ -40,9 +34,13 @@ WhenToUse: ""
 ---
 
 
+
+
 # devctl → Glazed port: CLI verb inventory and plan
 
-This document inventories every devctl CLI verb and flag, then proposes a concrete Glazed-based port plan. The goal is not to rewrite behavior, but to change *how the CLI is structured*: move from ad-hoc Cobra flag parsing to Glazed parameter definitions and reusable layers (especially for repo-root/config/timeouts), while integrating the Glazed help system so docs are queryable and consistent.
+This document inventories every devctl CLI verb and flag, then proposes a concrete Glazed-based port plan. The goal is not to rewrite behavior, but to change *how the CLI is structured*: move from hand-written Cobra `RunE` blocks to Glazed command structs and reusable parameter layers, while integrating the Glazed help system so docs are queryable and consistent.
+
+**Important decision (simplification):** we do **not** require exact flag parity with the old Cobra CLI, and we do **not** require `--repo-root/--config/...` to remain as persistent root flags. Repo context flags are allowed to be **command-local**, which means they appear after the verb (example: `devctl status --repo-root /path/to/repo`).
 
 ## 1. Scope and non-goals
 
@@ -51,9 +49,9 @@ This section defines what “port to Glazed” means in practice, so the impleme
 **In scope:**
 
 - Use Glazed’s command model (`cli.BuildCobraCommand`) rather than hand-written Cobra `RunE` blocks.
-- Replace ad-hoc root flag parsing with a custom Glazed layer for `repo-root` (and related flags).
+- Use a reusable Glazed layer for repo context flags (`repo-root`, `config`, `strict`, `dry-run`, `timeout`) and attach it to each relevant command.
 - Initialize the Glazed help system in the devctl root command, similar to `glazed/cmd/glaze/main.go`.
-- Preserve the existing devctl UX contracts (flags, defaults, output formats, error messages where reasonable).
+- Preserve output formats and core behavior, but allow flag placement/shape to change where it simplifies the port.
 
 **Out of scope (for this ticket):**
 
@@ -74,9 +72,9 @@ These are the upstream “how to do it the Glazed way” sources that should gui
 
 This section lists the current verbs and the flags they define. It is the canonical contract for porting work.
 
-### 3.1. Root command and global flags
+### 3.1. Common repo context flags (command-local)
 
-devctl defines global flags in `cmd/devctl/cmds/common.go`:
+devctl defines repo context flags in `cmd/devctl/cmds/common.go`. These flags are attached to (most) verbs directly, and should be used after the verb:
 
 - `--repo-root string` (default: current directory; normalized to absolute path)
 - `--config string` (default: `.devctl.yaml` under repo-root; relative paths resolved under repo-root)
@@ -93,15 +91,15 @@ Core workflow:
 - `devctl up`
   - Flags: `--force`, `--skip-validate`, `--skip-build`, `--skip-prepare`, `--build-step` (repeatable), `--prepare-step` (repeatable)
 - `devctl down`
-  - Flags: none (uses global flags)
+  - Flags: none (uses repo context flags)
 - `devctl status`
   - Flags: `--tail-lines int` (default 25)
 - `devctl logs`
   - Flags: `--service string` (required), `--stderr`, `--follow`
 - `devctl plan`
-  - Flags: none (uses global flags)
+  - Flags: none (uses repo context flags)
 - `devctl plugins list`
-  - Flags: none (uses global flags)
+  - Flags: none (uses repo context flags)
 - `devctl stream start`
   - Flags: `--plugin string`, `--op string` (required), `--input-json string`, `--input-file string`, `--start-timeout duration`, `--json`
 - `devctl tui`
@@ -111,16 +109,17 @@ Core workflow:
 
 These are valuable during development, but are not necessarily “product UX”:
 
-- `devctl smoketest`
-  - Flags: `--plugin string`, `--timeout duration`
-- `devctl smoketest-supervise`
-  - Flags: `--timeout duration`
-- `devctl smoketest-e2e`
-  - Flags: `--timeout duration`
-- `devctl smoketest-logs`
-  - Flags: `--timeout duration`
-- `devctl smoketest-failures`
-  - Flags: `--timeout duration`
+- These are dev-only commands, moved under a `dev` group:
+  - `devctl dev smoketest` (root)
+    - Flags: `--plugin string`, `--timeout duration`
+  - `devctl dev smoketest supervise`
+    - Flags: `--timeout duration`
+  - `devctl dev smoketest e2e`
+    - Flags: `--timeout duration`
+  - `devctl dev smoketest logs`
+    - Flags: `--timeout duration`
+  - `devctl dev smoketest failures`
+    - Flags: `--timeout duration`
 
 ### 3.4. Internal commands
 
@@ -159,7 +158,7 @@ For devctl, the docs source should include:
 
 ### 4.2. The custom `repo-root` layer (required)
 
-Devctl currently “manually” implements root flag normalization (absolute repo root, config resolution under repo root, timeout validation). In Glazed, this should be a dedicated reusable layer.
+Devctl currently normalizes repo context flags (absolute repo root, config resolution under repo root, timeout validation) in `cmd/devctl/cmds/common.go`. In Glazed, this should be a dedicated reusable layer, but it does not need to be persistent at the root: attach it to each relevant command.
 
 **Proposed layer:**
 
@@ -211,9 +210,9 @@ This ticket should decide a consistent approach:
 
 Each subsection describes how to represent the command’s flags in Glazed terms: which layer(s), which parameter definitions, which settings structs, and how to preserve defaults and validation.
 
-### 5.1. Root flags (applies to most commands)
+### 5.1. Repo context flags (applies to most commands)
 
-**Current flags (Cobra persistent):**
+**Current flags (command-local):**
 
 - `--repo-root string`
 - `--config string`
@@ -224,7 +223,7 @@ Each subsection describes how to represent the command’s flags in Glazed terms
 **Glazed port:**
 
 - Implement the `RepoSettings` custom layer (Section 4.2).
-- Include this layer in every devctl Glazed command by default.
+- Include this layer in every devctl Glazed command that needs repo context.
 - Prefer accessing values via `parsedLayers.InitializeStruct("repo", &RepoSettings{})`.
 
 ### 5.2. `up`
@@ -373,21 +372,22 @@ Each subsection describes how to represent the command’s flags in Glazed terms
 - Output:
   - No structured output; wraps BubbleTea run loop.
 
-### 5.10. Smoketests (`smoketest*`)
+### 5.10. Dev smoketests (`dev smoketest ...`)
 
-**Current flags:**
+**Current/target shape:**
 
-- `smoketest`: `--plugin`, `--timeout`
-- `smoketest-supervise`: `--timeout`
-- `smoketest-e2e`: `--timeout`
-- `smoketest-logs`: `--timeout`
-- `smoketest-failures`: `--timeout`
+- These are dev-only commands, moved under a `dev` group:
+  - `dev smoketest` (root): `--plugin`, `--timeout`
+  - `dev smoketest supervise`: `--timeout`
+  - `dev smoketest e2e`: `--timeout`
+  - `dev smoketest logs`: `--timeout`
+  - `dev smoketest failures`: `--timeout`
 
 **Glazed port:**
 
-- Keep these as Writer commands that emit JSON or `ok`.
-- Use dedicated settings structs per command; do not overload the repo layer (these commands currently run on temp dirs and do not use `.devctl.yaml`).
-- Decide whether these should remain “dev-only” behind build tags or hidden flags.
+- Keep these Cobra-only (hidden under `dev`) initially, to keep the Glazed port focused on user-facing commands.
+- If we port these later, keep them as Writer commands that emit JSON or `ok`, and use dedicated settings structs per command (these commands run on temp dirs and do not use `.devctl.yaml`).
+- Compatibility: do not keep `smoketest-*` aliases; update CI/docs call sites instead.
 
 ### 5.11. Internal: `__wrap-service`
 
@@ -407,7 +407,7 @@ This section proposes an order that keeps the port reviewable and reduces the ch
 3. Port one simple command end-to-end (suggested: `status`), validating the layer wiring.
 4. Port remaining core workflow commands (`plan`, `plugins list`, `logs`, `down`, `up`).
 5. Port `tui` and `stream start`.
-6. Decide on smoketest commands: keep as-is, hide, or port for consistency.
+6. Keep smoketests as dev-only commands under `dev` (Cobra-only) and update docs/CI call sites accordingly.
 
 ## 7. Risks and “how we could miss this again”
 

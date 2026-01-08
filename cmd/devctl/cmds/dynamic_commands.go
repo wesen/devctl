@@ -76,7 +76,7 @@ func AddDynamicPluginCommands(root *cobra.Command, args []string) error {
 
 	for name, prov := range byName {
 		prov := prov
-		root.AddCommand(&cobra.Command{
+		dynCmd := &cobra.Command{
 			Use:   name,
 			Short: prov.cmd.Help,
 			Args:  cobra.ArbitraryArgs,
@@ -131,7 +131,9 @@ func AddDynamicPluginCommands(root *cobra.Command, args []string) error {
 				}
 				return nil
 			},
-		})
+		}
+		AddRepoFlags(dynCmd)
+		root.AddCommand(dynCmd)
 	}
 
 	return nil

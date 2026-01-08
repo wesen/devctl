@@ -1,4 +1,4 @@
-package cmds
+package smoketest
 
 import (
 	"context"
@@ -19,11 +19,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newSmokeTestFailuresCmd() *cobra.Command {
+func newFailuresCmd() *cobra.Command {
 	var timeout time.Duration
 
 	cmd := &cobra.Command{
-		Use:   "smoketest-failures",
+		Use:   "failures",
 		Short: "Smoke test: validate fail, launch fail, and plugin timeout behaviors",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
@@ -42,7 +42,7 @@ func newSmokeTestFailuresCmd() *cobra.Command {
 			out := map[string]any{"ok": true}
 			b, _ := json.MarshalIndent(out, "", "  ")
 			_, _ = fmt.Fprintln(cmd.OutOrStdout(), string(b))
-			log.Info().Msg("smoketest-failures ok")
+			log.Info().Msg("smoketest failures ok")
 			return nil
 		},
 	}

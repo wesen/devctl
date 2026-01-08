@@ -121,5 +121,6 @@ func newTuiCmd() *cobra.Command {
 	cmd.Flags().DurationVar(&refresh, "refresh", 1*time.Second, "Refresh interval for state polling")
 	cmd.Flags().BoolVar(&altScreen, "alt-screen", true, "Use the terminal alternate screen buffer")
 	cmd.Flags().BoolVar(&debugLogs, "debug-logs", false, "Allow zerolog output to stdout/stderr while the TUI runs (may corrupt the UI)")
+	AddRepoFlags(cmd)
 	return cmd
 }

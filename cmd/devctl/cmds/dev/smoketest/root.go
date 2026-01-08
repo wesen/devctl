@@ -1,4 +1,4 @@
-package cmds
+package smoketest
 
 import (
 	"context"
@@ -13,13 +13,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newSmokeTestCmd() *cobra.Command {
+func NewCmd() *cobra.Command {
 	var pluginPath string
 	var timeout time.Duration
 
 	cmd := &cobra.Command{
 		Use:   "smoketest",
-		Short: "Run a minimal end-to-end plugin protocol smoke test",
+		Short: "Run devctl smoke/integration tests (dev-only)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
@@ -80,5 +80,13 @@ func newSmokeTestCmd() *cobra.Command {
 	cmd.Flags().StringVar(&pluginPath, "plugin", "", "Path to a plugin script (defaults to testdata ok plugin)")
 	cmd.Flags().DurationVar(&timeout, "timeout", 5*time.Second, "Overall timeout for the smoke test")
 
+	cmd.AddCommand(
+		newSuperviseCmd(),
+		newE2ECmd(),
+		newLogsCmd(),
+		newFailuresCmd(),
+	)
+
 	return cmd
 }
+

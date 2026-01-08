@@ -1,4 +1,4 @@
-package cmds
+package smoketest
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	goruntime "runtime"
 	"time"
 
 	"github.com/go-go-golems/devctl/pkg/config"
@@ -23,11 +22,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newSmokeTestE2ECmd() *cobra.Command {
+func newE2ECmd() *cobra.Command {
 	var timeout time.Duration
 
 	cmd := &cobra.Command{
-		Use:   "smoketest-e2e",
+		Use:   "e2e",
 		Short: "Smoke test: build test apps, run up/status/logs/down end-to-end",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
@@ -171,22 +170,13 @@ func newSmokeTestE2ECmd() *cobra.Command {
 			out := map[string]any{"ok": true, "repo_root": repoRoot, "services": len(plan.Services)}
 			b, _ := json.MarshalIndent(out, "", "  ")
 			_, _ = fmt.Fprintln(cmd.OutOrStdout(), string(b))
-			log.Info().Msg("smoketest-e2e ok")
+			log.Info().Msg("smoketest e2e ok")
 			return nil
 		},
 	}
 
 	cmd.Flags().DurationVar(&timeout, "timeout", 20*time.Second, "Overall timeout for the smoketest")
 	return cmd
-}
-
-func findDevctlRootFromCaller() string {
-	_, thisFile, _, ok := goruntime.Caller(0)
-	if !ok {
-		wd, _ := os.Getwd()
-		return wd
-	}
-	return filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", "..", ".."))
 }
 
 func buildTestApp(ctx context.Context, devctlRoot string, pkg string, outPath string) error {
@@ -247,3 +237,4 @@ func readServiceLog(st *state.State, name string, stderr bool) (string, error) {
 	}
 	return "", errors.Errorf("unknown service %q", name)
 }
+

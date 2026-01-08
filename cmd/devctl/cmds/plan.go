@@ -15,7 +15,7 @@ import (
 )
 
 func newPlanCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "plan",
 		Short: "Compute a merged launch plan from plugins (config.mutate + launch.plan)",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -93,4 +93,6 @@ func newPlanCmd() *cobra.Command {
 			return nil
 		},
 	}
+	AddRepoFlags(cmd)
+	return cmd
 }
