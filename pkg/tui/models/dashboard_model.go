@@ -295,7 +295,7 @@ func (m DashboardModel) View() string {
 	}
 
 	// Plugins summary
-	if s.Plugins != nil && len(s.Plugins) > 0 {
+	if len(s.Plugins) > 0 {
 		sections = append(sections, "")
 		sections = append(sections, m.renderPluginsSummary(theme, s.Plugins))
 	}
@@ -453,6 +453,10 @@ func (m DashboardModel) renderEventsPreview(theme styles.Theme) string {
 		// Style based on level
 		var style lipgloss.Style
 		switch e.Level {
+		case tui.LogLevelDebug:
+			style = theme.TitleMuted
+		case tui.LogLevelInfo:
+			style = theme.TitleMuted
 		case tui.LogLevelError:
 			style = theme.StatusDead
 		case tui.LogLevelWarn:

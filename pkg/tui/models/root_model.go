@@ -112,6 +112,12 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.active = ViewPipeline
 			case ViewPipeline:
 				m.active = ViewPlugins
+			case ViewPlugins:
+				m.active = ViewStreams
+			case ViewStreams:
+				m.active = ViewDashboard
+			case ViewService:
+				m.active = ViewDashboard
 			default:
 				m.active = ViewDashboard
 			}
@@ -142,6 +148,10 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case ViewPlugins:
 			var cmd tea.Cmd
 			m.plugins, cmd = m.plugins.Update(v)
+			return m, cmd
+		case ViewStreams:
+			var cmd tea.Cmd
+			m.streams, cmd = m.streams.Update(v)
 			return m, cmd
 		}
 	case tui.StateSnapshotMsg:
@@ -399,7 +409,7 @@ func (m RootModel) View() string {
 		content = m.plugins.View()
 	case ViewStreams:
 		content = m.streams.View()
-	default:
+	case ViewDashboard:
 		content = m.dashboard.View()
 	}
 

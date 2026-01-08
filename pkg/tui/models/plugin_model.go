@@ -277,4 +277,3 @@ func truncatePath(path string, maxLen int) string {
 	}
 	return path[:maxLen-3] + "..."
 }
-

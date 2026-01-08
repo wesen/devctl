@@ -225,7 +225,12 @@ func GetBootTime() (time.Time, error) {
 	if err != nil {
 		return time.Time{}, errors.Wrap(err, "open /proc/stat")
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			// Best-effort close; no caller-visible action.
+			_ = cerr
+		}
+	}()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -263,4 +268,3 @@ func GetProcessStartTime(pid int) (time.Time, error) {
 	startSeconds := int64(ps.startTime) / 100
 	return bootTime.Add(time.Duration(startSeconds) * time.Second), nil
 }
-
