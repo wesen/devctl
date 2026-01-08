@@ -4,6 +4,7 @@ package proc
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -71,16 +72,23 @@ func ReadStats(pid int, tracker *CPUTracker) (*Stats, error) {
 	pageSize := int64(os.Getpagesize())
 	memRSS := ps.rss * pageSize
 	memMB := memRSS / (1024 * 1024)
-	virtualMB := int64(ps.vsize) / (1024 * 1024)
+	virtualMB := ps.vsize / (1024 * 1024)
+	if virtualMB > math.MaxInt64 {
+		return nil, errors.New("virtual memory size overflows int64")
+	}
+	startTime := ps.startTime
+	if startTime > math.MaxInt64 {
+		return nil, errors.New("start time overflows int64")
+	}
 
 	stats := &Stats{
 		PID:       pid,
 		MemoryRSS: memRSS,
 		MemoryMB:  memMB,
-		VirtualMB: virtualMB,
+		VirtualMB: int64(virtualMB),
 		State:     string(ps.state),
 		Threads:   ps.threads,
-		StartTime: int64(ps.startTime),
+		StartTime: int64(startTime),
 	}
 
 	// Calculate CPU percentage if we have a tracker
@@ -265,6 +273,9 @@ func GetProcessStartTime(pid int) (time.Time, error) {
 
 	// startTime is in clock ticks since boot
 	// Assuming 100 Hz (standard on Linux)
-	startSeconds := int64(ps.startTime) / 100
-	return bootTime.Add(time.Duration(startSeconds) * time.Second), nil
+	startSeconds := ps.startTime / 100
+	if startSeconds > math.MaxInt64 {
+		return time.Time{}, errors.New("start time seconds overflow")
+	}
+	return bootTime.Add(time.Duration(int64(startSeconds)) * time.Second), nil
 }

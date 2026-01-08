@@ -234,7 +234,7 @@ func openErrorsWriter(cmd *cobra.Command, opts options) (io.Writer, io.Closer, e
 		return cmd.ErrOrStderr(), nil, nil
 	}
 
-	f, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	f, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "open --errors file")
 	}
