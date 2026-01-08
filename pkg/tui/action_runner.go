@@ -62,6 +62,12 @@ func RegisterUIActionRunner(bus *Bus, opts RootOptions) {
 		switch req.Kind {
 		case ActionDown:
 			err = runDown(ctx, opts, bus.Publisher, runID)
+		case ActionStop:
+			if req.Service == "" {
+				err = errors.New("missing service for stop action")
+				break
+			}
+			err = errors.New("stop action is not implemented")
 		case ActionUp:
 			err = runUp(ctx, opts, bus.Publisher, runID)
 		case ActionRestart:
@@ -213,6 +219,18 @@ func phasesForAction(kind ActionKind) []PipelinePhase {
 	switch kind {
 	case ActionDown:
 		return []PipelinePhase{PipelinePhaseStopSupervise, PipelinePhaseRemoveState}
+	case ActionStop:
+		return []PipelinePhase{PipelinePhaseStopSupervise}
+	case ActionUp:
+		return []PipelinePhase{
+			PipelinePhaseMutateConfig,
+			PipelinePhaseBuild,
+			PipelinePhasePrepare,
+			PipelinePhaseValidate,
+			PipelinePhaseLaunchPlan,
+			PipelinePhaseSupervise,
+			PipelinePhaseStateSave,
+		}
 	case ActionRestart:
 		return []PipelinePhase{
 			PipelinePhaseStopSupervise,
