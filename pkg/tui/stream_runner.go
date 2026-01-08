@@ -120,7 +120,9 @@ func (m *streamManager) handleStart(ctx context.Context, req StreamStartRequest)
 			})
 			return nil
 		}
-		client, err = m.factory.Start(ctx, spec, runtime.StartOptions{Meta: repo.Request})
+		// NOTE: Use context.Background() for plugin process lifetime.
+		// The plugin process should live as long as the stream, not the message.
+		client, err = m.factory.Start(context.Background(), spec, runtime.StartOptions{Meta: repo.Request})
 		if err != nil {
 			_ = m.publishStreamEnded(StreamEnded{
 				StreamKey: streamKey(pluginID, req.Op, req.Input),
@@ -146,7 +148,8 @@ func (m *streamManager) handleStart(ctx context.Context, req StreamStartRequest)
 		}
 	} else {
 		for _, spec := range specs {
-			c, err := m.factory.Start(ctx, spec, runtime.StartOptions{Meta: repo.Request})
+			// NOTE: Use context.Background() for plugin process lifetime.
+			c, err := m.factory.Start(context.Background(), spec, runtime.StartOptions{Meta: repo.Request})
 			if err != nil {
 				continue
 			}
@@ -178,7 +181,10 @@ func (m *streamManager) handleStart(ctx context.Context, req StreamStartRequest)
 		_ = client.Close(context.Background())
 		return nil
 	}
-	streamCtx, cancel := context.WithCancel(ctx)
+	// NOTE: Use context.Background() instead of ctx (message context).
+	// The message context is canceled when the handler returns, but streams
+	// should run independently until the plugin sends "end" or user stops them.
+	streamCtx, cancel := context.WithCancel(context.Background())
 	h := &streamHandle{
 		key:      key,
 		pluginID: pluginID,
