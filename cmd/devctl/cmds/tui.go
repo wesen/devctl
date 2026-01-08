@@ -45,14 +45,14 @@ func newTuiCmd() *cobra.Command {
 
 			tui.RegisterDomainToUITransformer(bus)
 
-			tui.RegisterUIActionRunner(bus, tui.RootOptions{
+			tui.RegisterUIActionRunner(ctx, bus, tui.RootOptions{
 				RepoRoot: opts.RepoRoot,
 				Config:   opts.Config,
 				Strict:   opts.Strict,
 				DryRun:   opts.DryRun,
 				Timeout:  opts.Timeout,
 			})
-			tui.RegisterUIStreamRunner(bus, tui.RootOptions{
+			tui.RegisterUIStreamRunner(ctx, bus, tui.RootOptions{
 				RepoRoot: opts.RepoRoot,
 				Config:   opts.Config,
 				Strict:   opts.Strict,
@@ -84,6 +84,7 @@ func newTuiCmd() *cobra.Command {
 			programOptions := []tea.ProgramOption{
 				tea.WithInput(cmd.InOrStdin()),
 				tea.WithOutput(cmd.OutOrStdout()),
+				tea.WithContext(ctx),
 			}
 			if altScreen {
 				programOptions = append(programOptions, tea.WithAltScreen())
