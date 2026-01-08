@@ -81,3 +81,13 @@ Update MO-012 plan/tasks; add testing diary and record validations (commit 012b0
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/reference/02-testing-diary.md — Recorded go test + smoketest runs and failures verbatim
 - /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/tasks.md — Checked off help/status/tests; added exhaustive validation backlog
 
+
+## 2026-01-08
+
+Port plugins list to Glazed and add intern porting playbook
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/cmd/devctl/cmds/plugins.go — plugins list is now a Glazed WriterCommand
+- /home/manuel/workspaces/2026-01-06/moments-dev-tool/devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/playbook/01-playbook-port-a-devctl-cobra-verb-to-a-glazed-command.md — Intern-facing porting procedure and gotchas
+

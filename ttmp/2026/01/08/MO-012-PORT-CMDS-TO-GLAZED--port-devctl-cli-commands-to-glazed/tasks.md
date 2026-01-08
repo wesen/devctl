@@ -9,7 +9,7 @@
 - [ ] Layer: add normalization+validation tests for RepoSettings (abs paths, timeout>0)
 - [x] Port: status command to Glazed (tail-lines flag, JSON output)
 - [ ] Port: plan command to Glazed (repo layer, JSON output, no-plugins {} behavior)
-- [ ] Port: plugins list command to Glazed (handshake inventory JSON)
+- [x] Port: plugins list command to Glazed (handshake inventory JSON)
 - [ ] Port: logs command to Glazed (service required, follow mode)
 - [ ] Port: down command to Glazed (stop+remove state)
 - [ ] Port: up command to Glazed (flags, interactive prompts, dry-run JSON)

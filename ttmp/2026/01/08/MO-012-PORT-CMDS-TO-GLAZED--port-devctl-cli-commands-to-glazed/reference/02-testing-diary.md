@@ -12,6 +12,8 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: devctl/cmd/devctl/cmds/plugins.go
+      Note: Tested plugins list output against /tmp/devctl-demo-repo
     - Path: devctl/cmd/devctl/main.go
       Note: Help system initialization that triggered doc parsing
     - Path: devctl/go.mod
@@ -24,6 +26,7 @@ LastUpdated: 2026-01-08T02:00:43.053305035-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Testing Diary
@@ -94,3 +97,46 @@ This step validates the first “Glazed integration” changes (help system init
 
 ### Technical details
 - Fixture plugins live under `devctl/testdata/plugins/`.
+
+## Step 2: Validate `plugins list` After Glazed Port
+
+This step validates the `plugins list` port to a Glazed `WriterCommand`. The point is to ensure repo-context parsing still works, plugin handshake still works, and the JSON output remains stable. It also serves as a concrete check for the “commands list” behavior: if a plugin’s handshake has no `capabilities.commands`, then the plugin has no dynamic CLI commands.
+
+### What I did
+- Ran unit tests:
+  - `cd devctl && GOWORK=off go test ./... -count=1`
+- Ran a minimal smoketest:
+  - `cd devctl && GOWORK=off go run ./cmd/devctl dev smoketest --timeout 20s`
+- Ran `plugins list` against a real repo:
+  - `cd devctl && GOWORK=off go run ./cmd/devctl plugins list --repo-root /tmp/devctl-demo-repo`
+
+### Why
+- `plugins list` is the quickest “real-world handshake” command and should remain reliable throughout the migration.
+- The output is used for debugging capabilities and dynamic commands, so it must not regress silently.
+
+### What worked
+- All commands above succeeded.
+- The demo plugin’s handshake does not declare `command.run` or `capabilities.commands`, so the JSON output omits `commands` entirely (empty + `omitempty`), which matches expected behavior.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Keeping group roots as Cobra and porting leaf subcommands to Glazed is a good incremental migration strategy.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Whether devctl should make “no commands declared” more explicit in `plugins list` output (e.g., `commands_count`), to reduce confusion during debugging.
+
+### What should be done in the future
+- Add a fixture-based validation task that asserts dynamic commands only appear when `capabilities.commands` is non-empty (not just `ops`).
+
+### Code review instructions
+- Validate:
+  - `cd devctl && GOWORK=off go test ./... -count=1`
+  - `cd devctl && GOWORK=off go run ./cmd/devctl plugins list --repo-root /tmp/devctl-demo-repo`
+
+### Technical details
+- The authoritative source for dynamic command specs is `handshake.capabilities.commands`.

@@ -12,6 +12,8 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: devctl/cmd/devctl/cmds/plugins.go
+      Note: Port plugins list to Glazed (WriterCommand)
     - Path: devctl/cmd/devctl/cmds/status.go
       Note: First Glazed-ported command (WriterCommand)
     - Path: devctl/cmd/devctl/main.go
@@ -32,6 +34,7 @@ LastUpdated: 2026-01-08T00:28:54.618949592-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -398,3 +401,48 @@ Along the way, we fixed an easy-to-miss docs issue: YAML frontmatter `Short:` va
 
 ### Technical details
 - Help docs are sourced from `devctl/pkg/doc/topics/*.md` and loaded at startup.
+
+## Step 8: Port `plugins list` to a Glazed Command (completed)
+
+This step ports `devctl plugins list` to a Glazed `WriterCommand`, using the same repo-context layer pattern as `status`. The goal is to keep the JSON output stable while exercising a command that touches plugin startup/handshake logic, since this is central to the overall migration (and to the recent confusion around “capabilities vs commands list”).
+
+**Commit (code):** 2b0160547b8c5eb078fb7794886f5d1afdfb48e0 — "devctl: port plugins list to Glazed"
+
+### What I did
+- Replaced the Cobra `RunE` implementation of `plugins list` with a Glazed `WriterCommand` built via `cli.BuildCobraCommand`.
+- Kept `plugins` as a Cobra group root and ported only the `list` leaf subcommand.
+- Validated against a real demo repo:
+  - `cd devctl && GOWORK=off go run ./cmd/devctl plugins list --repo-root /tmp/devctl-demo-repo`
+
+### Why
+- `plugins list` is a low-risk but high-leverage migration target: it proves Glazed parsing + repo-context layer + real plugin handshake still work together.
+- It’s also where we can most clearly surface the rule: dynamic commands come only from `handshake.capabilities.commands` (not from `ops`).
+
+### What worked
+- `GOWORK=off go test ./... -count=1` still passes.
+- `plugins list` output is unchanged for plugins that don’t declare commands: `commands` is omitted (empty, `omitempty`) and no dynamic commands should appear.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Porting a group subcommand is straightforward if we keep the group root as Cobra and only swap the leaf command to Glazed.
+
+### What was tricky to build
+- Avoiding accidental behavior changes around stdout/stderr: the plugin logs are on stderr, while the command prints JSON to stdout.
+
+### What warrants a second pair of eyes
+- Whether the `plugins list` command should include an explicit `commands_count` or similar derived field to make “commands list empty” more obvious (currently it relies on `omitempty`).
+
+### What should be done in the future
+- Port `plan` next (it exercises more of the pipeline but is still non-interactive).
+
+### Code review instructions
+- Review the port:
+  - `devctl/cmd/devctl/cmds/plugins.go`
+- Validate:
+  - `cd devctl && GOWORK=off go test ./... -count=1`
+  - `cd devctl && GOWORK=off go run ./cmd/devctl plugins list --repo-root /tmp/devctl-demo-repo`
+
+### Technical details
+- The Glazed command uses `RepoContextFromParsedLayers` + `repository.Load` + `runtime.Factory.Start` and prints the same JSON envelope (`{"plugins":[...]}`).
