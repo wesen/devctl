@@ -1,51 +1,52 @@
 # devctl TUI demo
-# Shows the interactive terminal UI: navigation, starting services, viewing logs
+# Shows the interactive terminal UI
 
-Output vhs/02-tui-demo.gif
+Output "02-tui-demo.gif"
 
 Set Shell "bash"
-Set FontSize 14
-Set Width 1600
-Set Height 1000
+Set FontSize 15
+Set Width 1400
+Set Height 900
 Set Padding 20
 Set Theme "Dracula"
+Set TypingSpeed 50ms
 
-# Start in a demo repo
-Type "cd /tmp/devctl-demo-repo" Enter
+# Start fresh
+Hide
+Type "cd /tmp/devctl-demo-repo && devctl down 2>/dev/null; clear" Enter
+Sleep 500ms
+Show
+
+Type "# The TUI is an interactive dashboard for your dev environment" Enter
 Sleep 1s
+Type "devctl tui --alt-screen=false" Enter
+Sleep 3s
 
-Type "# Start the TUI" Enter
-Sleep 1s
-Type "devctl tui" Enter
-Sleep 2s
-
-# Show the help overlay
+# Show help
 Type "?"
 Sleep 3s
 Type "?"
 Sleep 1s
 
-# Start services
+# Start services with 'u'
 Type "u"
-Sleep 1s
-Type "y"
-Sleep 5s
+Sleep 6s
 
-# Navigate through services
+# Navigate to second service
 Type "j"
-Sleep 500ms
-Type "j"
-Sleep 500ms
-Type "k"
 Sleep 1s
 
-# Open service logs
+# Open logs for the web service
 Type "l"
 Sleep 3s
 
-# Toggle stdout/stderr
+# Toggle to stderr
 Tab
 Sleep 2s
+
+# Toggle back to stdout  
+Tab
+Sleep 1s
 
 # Toggle follow mode
 Type "f"
@@ -55,11 +56,15 @@ Sleep 2s
 Escape
 Sleep 1s
 
+# Navigate to first service
+Type "k"
+Sleep 1s
+
 # Switch to Events view
 Tab
 Sleep 3s
 
-# Switch to Pipeline view
+# Switch to Pipeline view (shows last up operation)
 Tab
 Sleep 3s
 
@@ -71,13 +76,16 @@ Sleep 3s
 Tab
 Sleep 2s
 
-# Stop services
+# Stop services with confirmation
 Type "d"
 Sleep 1s
 Type "y"
-Sleep 2s
+Sleep 3s
 
 # Quit
 Type "q"
 Sleep 1s
 
+Type "" Enter
+Type "# Press ? for help, Tab to switch views, q to quit" Enter
+Sleep 2s
