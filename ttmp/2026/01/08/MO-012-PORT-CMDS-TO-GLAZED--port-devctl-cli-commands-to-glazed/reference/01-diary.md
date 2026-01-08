@@ -242,3 +242,45 @@ Alongside the code move, this step updated CI and docs to use the new command pa
   - `cd devctl && GOWORK=off go run ./cmd/devctl dev smoketest logs`
   - `cd devctl && GOWORK=off go run ./cmd/devctl dev smoketest failures`
   - `cd devctl && GOWORK=off go run ./cmd/devctl dev smoketest e2e`
+
+## Step 5: Cobra↔Glazed Porting Friction Report (completed)
+
+This step writes down the pain points we hit while trying to port a Cobra-first CLI to Glazed and collects concrete, actionable improvements that would make future ports significantly easier and less error-prone. The intent is to reduce “read a bunch of framework internals” work and replace it with a documented golden path and better primitives (persistent layers, duration/path types, clearer precedence docs, and dynamic command recipes).
+
+The report is intentionally exhaustive and opinionated: it’s meant to be used as a backlog for Glazed (or for local wrappers around Glazed) and as a review guide for how we should structure `devctl` while we migrate core verbs.
+
+**Commit (code):** N/A
+
+### What I did
+- Created and populated the report:
+  - `devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/analysis/02-cobra-glazed-porting-friction-report.md`
+- Related key implementation files (Glazed builder/parser/middlewares and devctl root wiring) to the report for quick navigation.
+
+### Why
+- Porting risk is dominated by “subtle wiring mistakes” (flags/layers/help/precedence), not by translating command bodies.
+- Capturing the confusing parts while they are fresh makes it easier to either improve Glazed upstream or build a small local “app builder” wrapper that creates a stable porting foundation.
+
+### What worked
+- The friction areas cluster into a small number of concrete themes (persistent flags/layers, precedence, parameter types, dynamic commands), which suggests high-leverage fixes are realistic.
+
+### What didn't work
+- N/A (documentation step).
+
+### What I learned
+- The hardest part of the port is not writing commands; it’s reconciling Cobra’s persistent/global-flag model with Glazed’s layer-based parsing model in a way that preserves UX and avoids double-registration.
+
+### What was tricky to build
+- Being precise about what “confusing” means without drifting into un-actionable complaints; the report is structured to map each pain point to concrete improvement proposals.
+
+### What warrants a second pair of eyes
+- Whether the proposed improvements should land upstream in Glazed vs be implemented as a small local “glazed app builder” wrapper inside `devctl` for faster iteration.
+
+### What should be done in the future
+- N/A (the report’s “Concrete improvement proposals” section is the follow-up list).
+
+### Code review instructions
+- Start with the report itself:
+  - `devctl/ttmp/2026/01/08/MO-012-PORT-CMDS-TO-GLAZED--port-devctl-cli-commands-to-glazed/analysis/02-cobra-glazed-porting-friction-report.md`
+
+### Technical details
+- N/A
