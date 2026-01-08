@@ -65,6 +65,7 @@ func newLogsCmd() *cobra.Command {
 	cmd.Flags().StringVar(&service, "service", "", "Service name")
 	cmd.Flags().BoolVar(&stderr, "stderr", false, "Show stderr log instead of stdout")
 	cmd.Flags().BoolVar(&follow, "follow", false, "Follow log output")
+	AddRepoFlags(cmd)
 	return cmd
 }
 

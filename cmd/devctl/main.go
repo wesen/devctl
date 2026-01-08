@@ -21,7 +21,6 @@ var rootCmd = &cobra.Command{
 
 func main() {
 	cobra.CheckErr(logging.AddLoggingLayerToRootCommand(rootCmd, "devctl"))
-	cmds.AddRootFlags(rootCmd)
 	cobra.CheckErr(cmds.AddCommands(rootCmd))
 	cobra.CheckErr(cmds.AddDynamicPluginCommands(rootCmd, os.Args))
 	cobra.CheckErr(rootCmd.Execute())

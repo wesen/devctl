@@ -92,5 +92,6 @@ func newStatusCmd() *cobra.Command {
 	}
 
 	cmd.Flags().IntVar(&tailLines, "tail-lines", 25, "How many stderr lines to include for dead services")
+	AddRepoFlags(cmd)
 	return cmd
 }

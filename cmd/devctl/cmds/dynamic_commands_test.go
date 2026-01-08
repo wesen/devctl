@@ -24,12 +24,12 @@ func TestDynamicCommands_RegisterAndRun(t *testing.T) {
 	require.NoError(t, os.WriteFile(cfgPath, cfg, 0o644))
 
 	root := &cobra.Command{Use: "devctl"}
-	AddRootFlags(root)
 
 	err = AddDynamicPluginCommands(root, []string{
 		"devctl",
 		"--repo-root", repoRoot,
 		"--config", cfgPath,
+		"echo",
 	})
 	require.NoError(t, err)
 
@@ -37,7 +37,7 @@ func TestDynamicCommands_RegisterAndRun(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, echoCmd)
 
-	root.SetArgs([]string{"--repo-root", repoRoot, "--config", cfgPath, "--timeout", (2 * time.Second).String(), "echo", "hello"})
+	root.SetArgs([]string{"echo", "--repo-root", repoRoot, "--config", cfgPath, "--timeout", (2 * time.Second).String(), "hello"})
 	require.NoError(t, root.Execute())
 }
 
@@ -54,7 +54,6 @@ func TestDynamicCommands_SkipsBuiltIns(t *testing.T) {
 	require.NoError(t, os.WriteFile(cfgPath, cfg, 0o644))
 
 	root := &cobra.Command{Use: "devctl"}
-	AddRootFlags(root)
 	require.NoError(t, AddCommands(root))
 
 	// If we are invoking a built-in command (like `status`), dynamic command discovery should be skipped.
@@ -89,7 +88,6 @@ func TestDynamicCommands_SkipsWrapService(t *testing.T) {
 	require.NoError(t, os.WriteFile(cfgPath, cfg, 0o644))
 
 	root := &cobra.Command{Use: "devctl"}
-	AddRootFlags(root)
 
 	err = AddDynamicPluginCommands(root, []string{
 		"devctl",

@@ -22,7 +22,7 @@ func newPluginsCmd() *cobra.Command {
 }
 
 func newPluginsListCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List configured plugins and their handshake capabilities",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -93,4 +93,6 @@ func newPluginsListCmd() *cobra.Command {
 			return nil
 		},
 	}
+	AddRepoFlags(cmd)
+	return cmd
 }

@@ -207,6 +207,7 @@ func newUpCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&skipPrepare, "skip-prepare", false, "Skip prepare.run")
 	cmd.Flags().StringSliceVar(&buildSteps, "build-step", nil, "Build step name (repeatable)")
 	cmd.Flags().StringSliceVar(&prepareSteps, "prepare-step", nil, "Prepare step name (repeatable)")
+	AddRepoFlags(cmd)
 	return cmd
 }
 

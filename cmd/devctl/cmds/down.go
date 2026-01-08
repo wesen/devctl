@@ -10,7 +10,7 @@ import (
 )
 
 func newDownCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "down",
 		Short: "Stop supervised services and remove state",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -34,4 +34,6 @@ func newDownCmd() *cobra.Command {
 			return nil
 		},
 	}
+	AddRepoFlags(cmd)
+	return cmd
 }
