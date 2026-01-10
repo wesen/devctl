@@ -47,6 +47,15 @@ type TicketMeta struct {
 	Path     string `json:"path"`
 }
 
+// DiaryInfo holds information about a diary file
+type DiaryInfo struct {
+	FilePath    string    `json:"filePath"`
+	TicketID    string    `json:"ticketId"`
+	Title       string    `json:"title"`
+	LastModified time.Time `json:"lastModified"`
+	SectionCount int       `json:"sectionCount"`
+}
+
 // DiaryWatcher manages file watching and event broadcasting
 type DiaryWatcher struct {
 	mu           sync.RWMutex
@@ -412,6 +421,56 @@ func (dw *DiaryWatcher) processFileChange(filePath string) {
 	}
 }
 
+// GetAllDiaries returns all diary files with their metadata, sorted by last modified
+func (dw *DiaryWatcher) GetAllDiaries() ([]DiaryInfo, error) {
+	files, err := dw.findDiaryFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	var diaries []DiaryInfo
+	for _, filePath := range files {
+		// Get file info
+		info, err := os.Stat(filePath)
+		if err != nil {
+			continue
+		}
+
+		// Get ticket metadata
+		ticketDir := filepath.Dir(filePath)
+		for !strings.Contains(filepath.Base(ticketDir), "--") && ticketDir != dw.rootDir {
+			ticketDir = filepath.Dir(ticketDir)
+		}
+		meta := parseTicketMeta(ticketDir)
+
+		// Get section count
+		sections, err := parseSections(filePath)
+		sectionCount := len(sections)
+		if err != nil {
+			sectionCount = 0
+		}
+
+		diaries = append(diaries, DiaryInfo{
+			FilePath:     filePath,
+			TicketID:     meta.TicketID,
+			Title:        meta.Title,
+			LastModified: info.ModTime(),
+			SectionCount: sectionCount,
+		})
+	}
+
+	// Sort by last modified (most recent first)
+	for i := 0; i < len(diaries)-1; i++ {
+		for j := i + 1; j < len(diaries); j++ {
+			if diaries[i].LastModified.Before(diaries[j].LastModified) {
+				diaries[i], diaries[j] = diaries[j], diaries[i]
+			}
+		}
+	}
+
+	return diaries, nil
+}
+
 // Close stops the watcher
 func (dw *DiaryWatcher) Close() error {
 	return dw.watcher.Close()
@@ -453,6 +512,36 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if err := s.templates.ExecuteTemplate(w, "index.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (s *Server) handleDiaries(w http.ResponseWriter, r *http.Request) {
+	diaries, err := s.watcher.GetAllDiaries()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		Title   string
+		Diaries []DiaryInfo
+	}{
+		Title:   "Diary Tail - All Diaries",
+		Diaries: diaries,
+	}
+
+	if err := s.templates.ExecuteTemplate(w, "diaries.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleAPIDiaries(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	diaries, err := s.watcher.GetAllDiaries()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(diaries)
 }
 
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
@@ -580,9 +669,11 @@ func main() {
 
 	// Routes
 	http.HandleFunc("/", server.handleIndex)
+	http.HandleFunc("/diaries", server.handleDiaries)
 	http.HandleFunc("/events", server.handleEvents)
 	http.HandleFunc("/api/events", server.handleAPI)
 	http.HandleFunc("/api/diary", server.handleDiary)
+	http.HandleFunc("/api/diaries", server.handleAPIDiaries)
 
 	addr := fmt.Sprintf(":%d", *port)
 	log.Printf("Server listening on http://localhost%s", addr)

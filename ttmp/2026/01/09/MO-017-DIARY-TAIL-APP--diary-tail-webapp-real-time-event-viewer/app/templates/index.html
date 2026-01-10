@@ -82,6 +82,22 @@
             50% { opacity: 0.3; }
         }
 
+        .nav-link {
+            color: var(--diary-text-muted);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--diary-accent);
+            background: rgba(0, 217, 255, 0.1);
+        }
+
         .main-content {
             display: flex;
             flex: 1;
@@ -506,11 +522,17 @@
     <div class="app-container">
         <nav class="navbar">
             <div class="container-fluid px-4">
-                <a class="navbar-brand d-flex align-items-center" href="#">
+                <a class="navbar-brand d-flex align-items-center" href="/">
                     <i class="bi bi-journal-text brand-icon"></i>
                     <span>Diary Tail</span>
                 </a>
                 <div class="d-flex align-items-center gap-3">
+                    <a class="nav-link active" href="/">
+                        <i class="bi bi-lightning-charge"></i>Events
+                    </a>
+                    <a class="nav-link" href="/diaries">
+                        <i class="bi bi-list-ul"></i>All Diaries
+                    </a>
                     <span class="status-badge">
                         <span class="status-dot"></span>
                         <span>Watching</span>
