@@ -8,14 +8,24 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-  - env:
-      - CGO_ENABLED=0
+  - id: devctl-linux
+    env:
+      - CGO_ENABLED=1
     main: ./cmd/XXX
     binary: XXX
     goos:
       - linux
 # I am not able to test windows at the time
 #      - windows
+    goarch:
+      - amd64
+      - arm64
+  - id: devctl-darwin
+    env:
+      - CGO_ENABLED=1
+    main: ./cmd/XXX
+    binary: XXX
+    goos:
       - darwin
     goarch:
       - amd64
