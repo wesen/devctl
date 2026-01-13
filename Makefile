@@ -3,6 +3,8 @@
 all: gifs
 
 VERSION=v0.1.14
+GORELEASER_ARGS ?= --skip=sign --snapshot --clean
+GORELEASER_TARGET ?= --single-target
 
 TAPES=$(wildcard doc/vhs/*tape)
 gifs: $(TAPES)
@@ -33,7 +35,7 @@ build:
 	GOWORK=off go build ./...
 
 goreleaser:
-	GOWORK=off goreleaser release --skip=sign --snapshot --clean
+	GOWORK=off goreleaser release $(GORELEASER_ARGS) $(GORELEASER_TARGET)
 
 tag-major:
 	git tag $(shell svu major)
