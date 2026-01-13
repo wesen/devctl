@@ -173,6 +173,8 @@ I shifted from VHS GIFs to tmux-driven TUI captures and rendered PNG screenshots
 
 I added a short playbook under `docs/screenshots/` describing how to capture and render devctl TUI screenshots. This makes the screenshot workflow discoverable outside the ticket folder while still pointing back to the scripts.
 
+**Commit (code):** 0026fd9 — "Docs: expand devctl README with TUI screenshots"
+
 ### What I did
 - Wrote `docs/screenshots/PLAYBOOK.md` with prerequisites, capture steps, and validation notes.
 
@@ -202,3 +204,43 @@ I added a short playbook under `docs/screenshots/` describing how to capture and
 
 ### Technical details
 - Playbook location: `/home/manuel/workspaces/2026-01-13/add-devctl-readme/devctl/docs/screenshots/PLAYBOOK.md`.
+
+## Step 5: Upload README and playbook to reMarkable
+
+I uploaded the devctl README and screenshot playbook to the reMarkable device as PDFs using the standard uploader. The README upload emitted warnings about missing image resources due to the temp conversion directory, so the uploaded PDF substitutes alt text for the screenshots.
+
+### What I did
+- Ran a dry-run for both files to confirm destination and commands.
+- Uploaded `README.md` and `docs/screenshots/PLAYBOOK.md` to `ai/2026/01/13/`.
+- Re-ran the upload for PLAYBOOK after the combined command timed out.
+
+### Why
+- Provide the latest README and screenshot playbook on the device for review.
+
+### What worked
+- `PLAYBOOK.pdf` uploaded successfully on the retry.
+- `README.pdf` uploaded successfully in the initial run (per uploader output).
+
+### What didn't work
+- The combined upload command timed out after 10 seconds: `python3 /home/manuel/.local/bin/remarkable_upload.py --date 2026/01/13 ...`.
+- README conversion warned that `docs/screenshots/devctl-tui-*.png` could not be fetched, so images were replaced with descriptions.
+
+### What I learned
+- The uploader runs pandoc in a temp directory, so relative image paths in the README are not resolved unless resource paths are provided.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- Confirm whether README PDFs should include embedded screenshots and, if so, decide on a stable approach for pandoc resource paths.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- No code changes for this step; review the upload commands in the Technical details section.
+
+### Technical details
+- Dry-run: `python3 /home/manuel/.local/bin/remarkable_upload.py --date 2026/01/13 --dry-run /home/manuel/workspaces/2026-01-13/add-devctl-readme/devctl/README.md /home/manuel/workspaces/2026-01-13/add-devctl-readme/devctl/docs/screenshots/PLAYBOOK.md`.
+- Upload README (timed out after upload): `python3 /home/manuel/.local/bin/remarkable_upload.py --date 2026/01/13 /home/manuel/workspaces/2026-01-13/add-devctl-readme/devctl/README.md /home/manuel/workspaces/2026-01-13/add-devctl-readme/devctl/docs/screenshots/PLAYBOOK.md`.
+- Upload PLAYBOOK: `python3 /home/manuel/.local/bin/remarkable_upload.py --date 2026/01/13 /home/manuel/workspaces/2026-01-13/add-devctl-readme/devctl/docs/screenshots/PLAYBOOK.md`.

@@ -88,3 +88,30 @@ Step 6-7: check off implemented tasks and force-upload refreshed report/diary
 
 - /home/manuel/workspaces/2026-01-13/add-devctl-readme/devctl/ttmp/2026/01/13/MO-018-ADD-DEVCTL-README--add-devctl-readme/reference/01-close-ticket-diary.md — Recorded task checkoffs
 
+
+## 2026-01-13
+
+Step 8: close MO-015 and refresh assessment
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-13/add-devctl-readme/devctl/ttmp/2026/01/13/MO-018-ADD-DEVCTL-README--add-devctl-readme/analysis/01-active-ticket-status-report.md — Updated counts and removed MO-015 from active list
+
+
+## 2026-01-13
+
+Step 9: force-upload refreshed report/diary after MO-015 closure
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-13/add-devctl-readme/devctl/ttmp/2026/01/13/MO-018-ADD-DEVCTL-README--add-devctl-readme/reference/01-close-ticket-diary.md — Recorded reMarkable refresh
+
+
+## 2026-01-13
+
+Recorded reMarkable uploads and commit hash in diary
+
+### Related Files
+
+- /home/manuel/workspaces/2026-01-13/add-devctl-readme/devctl/ttmp/2026/01/13/MO-018-ADD-DEVCTL-README--add-devctl-readme/reference/02-diary.md — Logged commit and upload details
+
