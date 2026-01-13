@@ -1,24 +1,23 @@
 ---
-Title: Scope TUI Context Lifetimes for Background Work
-Ticket: MO-017-TUI-CONTEXT-LIFETIME-SCOPING
-Status: complete
+Title: Add devctl README
+Ticket: MO-018-ADD-DEVCTL-README
+Status: active
 Topics:
     - devctl
-    - tui
+    - documentation
+    - readme
 DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-13T17:05:57.342270513-05:00
+LastUpdated: 2026-01-13T15:36:52.617803273-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
 
-
-
-# Scope TUI Context Lifetimes for Background Work
+# Add devctl README
 
 ## Overview
 
@@ -36,7 +35,8 @@ Current status: **active**
 ## Topics
 
 - devctl
-- tui
+- documentation
+- readme
 
 ## Tasks
 
